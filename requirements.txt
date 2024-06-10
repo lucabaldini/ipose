@@ -1,0 +1,9 @@
+loguru
+opencv-python
+openpyxl
+pandas
+pdfrw
+pillow
+pyside6
+qrcode
+requests
