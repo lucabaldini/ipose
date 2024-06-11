@@ -19,6 +19,9 @@
 
 from pathlib import Path
 
+from ipose.version import version as __version__
+
+
 __PACKAGE_NAME__ = 'ipose'
 
 # Basic package structure.
