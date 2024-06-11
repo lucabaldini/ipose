@@ -23,6 +23,7 @@ __PACKAGE_NAME__ = 'ipose'
 
 # Basic package structure.
 IPOSE_ROOT = Path(__file__).parent
-IPOSE_BASE = BALDAQUIN_ROOT.parent
-IPOSE_DOCS = BALDAQUIN_BASE / 'docs'
-IPOSE_TESTS = BALDAQUIN_BASE / 'test'
+IPOSE_BASE = IPOSE_ROOT.parent
+IPOSE_DATA = IPOSE_BASE / 'data'
+IPOSE_DOCS = IPOSE_BASE / 'docs'
+IPOSE_TESTS = IPOSE_BASE / 'tests'
