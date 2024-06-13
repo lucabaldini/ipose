@@ -16,6 +16,7 @@
 
 """Various facilities to operate on raster images.
 """
+
 from __future__ import annotations
 
 import dataclasses
@@ -56,7 +57,19 @@ class Rectangle:
     x0: int
     y0: int
     width: int
-    height: int
+    height: int = None
+
+    def __post_init__(self) -> None:
+        """Post initialization code.
+        """
+        # By deafult, generate a square.
+        if self.height is None:
+            self.height = self.width
+        # Also, make sure all the members are integers, as we are dealing with
+        # pixels in rastered images.
+        for item in (self.x0, self.y0, self.width, self.height):
+            if not isinstance(item, int):
+                raise RuntimeError(f'Wrong type for {self}')
 
     def copy(self) -> Rectangle:
         """Return an identical copy of the rectangle.
@@ -67,6 +80,16 @@ class Rectangle:
             A new Rectangle object, identical to the original one.
         """
         return Rectangle(self.x0, self.y0, self.width, self.height)
+
+    def is_square(self) -> bool:
+        """Return True if the rectangle is square.
+
+        Returns
+        -------
+        bool
+            True if the rectangle is squared.
+        """
+        return self.width == self.height
 
     def area(self) -> int:
         """Return the area of the rectangle.
@@ -89,15 +112,15 @@ class Rectangle:
         """
         return (self.x0, self.y0, self.x0 + self.width, self.y0 + self.width)
 
-    def center(self) -> tuple[int, int]:
-        """Returns the (rounded) coordinates of the center of the rectangle.
+    def center(self) -> tuple[float, float]:
+        """Returns the coordinates of the center of the rectangle.
 
         Returns
         -------
-        tuple[int, int]
+        tuple[float, float]
             The coordinates of the center of the rectangle.
         """
-        return (self.x0 + self.width / 2, self.y0 + self.height / 2)
+        return (self.x0 + self.width / 2., self.y0 + self.height / 2.)
 
     @staticmethod
     def rounded_geometric_mean(*values: float, scale: float = None) -> int:
@@ -220,6 +243,12 @@ class Rectangle:
         # Create a verbatim copy of the original rectangle...
         rect = self.copy()
         # ...and work our way to the desired rectangle.
+        if rect.width > width:
+            rect.width = width
+        if rect.height > height:
+            rect.height > height
+        if self.is_square() and not rect.is_square():
+            raise RuntimeError('Final rectangle is not square.')
         if rect.x0 < 0:
             rect.x0 = 0
         if rect.y0 < 0:

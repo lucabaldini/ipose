@@ -18,11 +18,29 @@ from ipose import logger
 from ipose.raster import Rectangle
 
 
-def test_rectangle_base(x0=400, y0=200, side=100):
+def test_rectangle_base():
     """Basic tests for the rectangle class.
     """
     # Create a random rectangle.
-    rect = Rectangle(x0, y0, side, side)
-    logger.info(rect)
+    rect = Rectangle(10, 20, 100)
+    assert rect.is_square()
     # Is a given rectangle equal to itself?
     assert rect == rect.copy()
+    assert rect.bounding_box() == (10, 20, 110, 120)
+
+def test_rectangle_padding():
+    """Test the rectangle padding code.
+    """
+    rect = Rectangle(100, 100, 200)
+    assert rect.pad(100, 100, 100, 100) == Rectangle(0, 0, 400, 400)
+    assert rect.pad(100, 100) == Rectangle(0, 0, 400, 400)
+    assert rect.pad(100) == Rectangle(0, 0, 400, 400)
+    assert rect.pad(100, 200) == Rectangle(-100, 0, 600, 400)
+
+def test_rectangle_fitting():
+    """Test for rectangle fitting.
+    """
+    rect = Rectangle(-10, -10, 100, 100)
+    assert rect.fit_to_size(400, 200) == Rectangle(0, 0, 100, 100)
+    assert rect.fit_to_size(100, 100) == Rectangle(0, 0, 100, 100)
+    #print(rect.fit_to_size(80, 100))
