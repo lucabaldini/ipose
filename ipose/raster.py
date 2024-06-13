@@ -126,8 +126,7 @@ class Rectangle:
         """
         return self.rounded_geometric_mean(self.width, self.height)
 
-    def pad(self, top: int, right: int = None, bottom: int = None,
-        left: int = None) -> Rectangle:
+    def pad(self, top: int, right: int = None, bottom: int = None, left: int = None) -> Rectangle:
         """Pad the rectangle according to the input parameters.
 
         Note that the order of the arguments is designed to make it easy for the
@@ -152,7 +151,7 @@ class Rectangle:
         Returns
         -------
         Rectangle
-            A new rectangle, properly padded with respect to the original one.
+            A new Rectangle object, properly padded with respect to the original one.
         """
         right = right or top
         bottom = bottom or top
@@ -160,40 +159,61 @@ class Rectangle:
         return Rectangle(self.x0 - left, self.y0 - top, self.width + right + left,
             self.height + top + bottom)
 
-    def fractional_pad(self, top: float, right: float = None, bottom: float = None,
-        left: float = None) -> Rectangle:
-        """This is similar in spirit to the :meth:`Rectangle.pad` method, except
-        for the fact that the padding is expresses as a fraction of the
-        original equivalent square side, as opposed to pixels.
+    def pad_face(self, horizontal_fractional_padding: float = 0.5,
+        top_scale_factor: float = 1.25) -> Rectangle:
+        """Specialized function for padding a rectangle given by :meth:`run_face_recognition`.
+
+        This is essentially adding a horizontal padding given by the first argument
+        and asymmetric top-bottom padding governed by the second. The rationale behind
+        this is that opencv tends to crop the hair, and we generally want a padding
+        on the top that is slightly larger than that on the bottom.
+
+        Note that this function guarantees that the sum of the horizontal and vertical
+        paddings are the same---that is, if we start from a square rectangle, we do
+        end up with a square rectangle.
 
         Parameters
         ----------
-        top
-            The top padding as a fraction of the equivalent square side.
+        horizontal_fractional_padding
+            The horizontal padding, on either side, in units of the equivalent ]
+            square side of the rectangle.
 
-        right
-            The right padding as a fraction of the equivalent square side.
-
-        bottom
-            The bottom padding as a fraction of the equivalent square side.
-
-        left
-            The left padding as a fraction of the equivalent square side.
+        top_scale_factor
+            The ratio between the pad on the top and that on the right/left.
 
         Returns
         -------
         Rectangle
-            A new rectangle, properly padded with respect to the original one.
+            A new Rectangle object, padded accordingly.
         """
-        side = self.equivalent_square_side()
-        top = round(top * side)
-        if right is not None:
-            right = round(right * side)
-        if bottom is not None:
-            bottom = round(bottom * side)
-        if left is not None:
-            left = round(left * side)
-        return self.pad(top, right, bottom, left)
+        right = round(horizontal_fractional_padding * self.equivalent_square_side())
+        top = round(top_scale_factor * right)
+        bottom = 2 * right - top
+        return self.pad(top, right, bottom)
+
+    def fit_to_size(self, width: int, height: int) -> Rectangle:
+        """Fit a given rectangle to a given image canvas.
+
+        Parameters
+        ----------
+        width
+            The width of the target canvas image in pixels.
+
+        height
+            The height of the target canvas image in pixels.
+
+        Returns
+        -------
+        Rectangle
+            A new Rectangle object fitting into the target canvas.
+        """
+        x0 = self.x0
+        y0 = self.y0
+        if self.width > width:
+            raise RuntimeError(f'{self} too wide to fit within {width} x {height}.')
+        if self.height > height:
+            raise RuntimeError(f'{self} too high to fit within {width} x {height}.')
+        return Rectangle(max(self.x0, 0), max(self.y0, 0), self.width, self.height)
 
     def __lt__(self, other):
         """Comparison operator---this is such that :class:`Ractangle` instances
@@ -282,6 +302,17 @@ def run_face_recognition(file_path: pathlib.Path | str, scale_factor: float = 1.
     return candidates
 
 
+def open_raster_image():
+    """
+    """
+    pass
+
+def crop_image_to_face():
+    """
+    """
+    pass
+
+
 
 
 if __name__ == '__main__':
@@ -291,5 +322,11 @@ if __name__ == '__main__':
     with Image.open(file_path) as image:
         draw = ImageDraw.Draw(image)
         for rect in rects:
+            print('Original: ', rect)
             draw.rectangle(rect.bounding_box(), outline='white', width=2)
+            pad_rect = rect.pad_face()
+            print('Padded:', pad_rect)
+            pad_rect = pad_rect.fit_to_size(*image.size)
+            print('Fitted: ', pad_rect)
+            draw.rectangle(pad_rect.bounding_box(), outline='red', width=2)
         image.show()
