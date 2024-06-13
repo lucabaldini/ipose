@@ -17,8 +17,10 @@
 """System-wide facilities.
 """
 
-from loguru import logger
 from pathlib import Path
+import sys
+
+from loguru import logger
 
 from ipose.version import version as __version__
 
@@ -33,3 +35,7 @@ IPOSE_DOCS = IPOSE_BASE / 'docs'
 IPOSE_EXT = IPOSE_BASE / 'ext'
 IPOSE_TESTS = IPOSE_BASE / 'tests'
 IPOSE_TEST_DATA = IPOSE_TESTS / 'data'
+
+DEFAULT_LOGURU_FORMAT = '>>> <level>{message}</level>'
+DEFAULT_LOGURU_HANDLER = dict(sink=sys.stderr, colorize=True, format=DEFAULT_LOGURU_FORMAT)
+logger.configure(handlers=[DEFAULT_LOGURU_HANDLER], levels=None)
