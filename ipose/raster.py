@@ -29,7 +29,7 @@ from PIL import Image, ImageDraw
 from ipose import logger
 from ipose import IPOSE_TEST_DATA
 
-_DEFAULT_FACE_DETECTION_MODEL = pathlib.Path(cv2.data.haarcascades) / 'haarcascade_frontalface_default.xml'
+_DEFAULT_FACE_DETECTION_MODEL_PATH = pathlib.Path(cv2.data.haarcascades) / 'haarcascade_frontalface_default.xml'
 
 
 @dataclasses.dataclass
@@ -70,16 +70,40 @@ class Rectangle:
 
 
 
-def face_detection(file_path: str, min_frac_size: float = 0.15):
+def detect_faces(file_path: str, scale_factor: float = 1.1, min_neighbors: int = 5,
+    min_fractional_size: float = 0.15) -> list[Rectangle]:
+    """Minimal wrapper around the standard opencv face recognition, see, e.g,
+    https://www.datacamp.com/tutorial/face-detection-python-opencv
+
+    Parameters
+    ----------
+    file_path
+        The path to input image file.
+
+    scale_factor
+        Parameter specifying how much the image size is reduced at each image scale
+        (passed along verbatim as ``scaleFactor`` to the ``detectMultiScale`` call).
+
+    min_neighbors
+        Parameter specifying how many neighbors each candidate rectangle should have
+        to retain it (passed along verbatim as ``minNeighbors`` to the ``detectMultiScale``
+        call).
+
+    min_fractional_size
+        Minimum possible fractional object size. Objects smaller than that are ignored.
+        This is converted internally to...
+
+    Returns
+    -------
     """
-    """
-    classifier = cv2.CascadeClassifier(f'{_DEFAULT_FACE_DETECTION_MODEL}')
+    classifier = cv2.CascadeClassifier(f'{_DEFAULT_FACE_DETECTION_MODEL_PATH}')
     logger.info(f'Running face detection on {file_path}...')
     img = cv2.imread(f'{file_path}')
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     height, width = img.shape
-    min_size = round(width * min_frac_size), round(height * min_frac_size)
-    faces = classifier.detectMultiScale(img, scaleFactor=1.1, minNeighbors=5, minSize=min_size)
+    min_size = round(width * min_fractional_size), round(height * min_fractional_size)
+    faces = classifier.detectMultiScale(img, scaleFactor=scale_factor,
+        minNeighbors=min_neighbors, minSize=min_size)
     faces = [Rectangle(*face) for face in faces]
     faces.sort()
     return faces
@@ -90,7 +114,7 @@ def face_detection(file_path: str, min_frac_size: float = 0.15):
 if __name__ == '__main__':
     #file_path = IPOSE_TEST_DATA / 'mona_lisa.webp'
     file_path = IPOSE_TEST_DATA / 'cs_women.webp'
-    rects = face_detection(file_path, 0.025)
+    rects = detect_faces(file_path, min_fractional_size=0.025)
     print(rects)
     with Image.open(file_path) as image:
         draw = ImageDraw.Draw(image)
