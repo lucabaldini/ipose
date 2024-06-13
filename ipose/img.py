@@ -24,19 +24,18 @@ import cv2
 from matplotlib import pyplot as plt
 import matplotlib.patches
 import numpy as np
-import PIL
+from PIL import Image, ImageDraw
 
 from ipose import logger
-from ipose import IPOSE_DATA
+from ipose import IPOSE_TEST_DATA
 
-_DEFAULT_FACE_DETECTION_MODEL = '/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml'
+_DEFAULT_FACE_DETECTION_MODEL = pathlib.Path(cv2.data.haarcascades) / 'haarcascade_frontalface_default.xml'
 
 
 @dataclasses.dataclass
 class Rectangle:
 
-    """Small container class representing a rectangle as, e.g., returned by the
-    opencv pattern detection algorithms.
+    """Small container class representing a rectangle.
     """
 
     x0: int
@@ -49,9 +48,29 @@ class Rectangle:
         """
         return self.width * self.height
 
+    def bounding_box(self):
+        """
+        """
+        return (self.x0, self.y0, self.x0 + self.width, self.y0 + self.width)
+
+    def center(self):
+        """
+        """
+        pass
+
+    def average_side(self):
+        """
+        """
+        pass
+
+    def __lt__(self, other):
+        """
+        """
+        return self.area() < other.area()
 
 
-def face_detection(file_path: str, min_frac_size: float = 0.145):
+
+def face_detection(file_path: str, min_frac_size: float = 0.15):
     """
     """
     classifier = cv2.CascadeClassifier(f'{_DEFAULT_FACE_DETECTION_MODEL}')
@@ -63,17 +82,18 @@ def face_detection(file_path: str, min_frac_size: float = 0.145):
     faces = classifier.detectMultiScale(img, scaleFactor=1.1, minNeighbors=5, minSize=min_size)
     faces = [Rectangle(*face) for face in faces]
     faces.sort()
-    return faces[0]
+    return faces
 
 
 
 
 if __name__ == '__main__':
-    file_path = IPOSE_DATA / 'mona_lisa.webp'
-    rect = face_detection(file_path)
-    print(rect)
-    img = np.asarray(PIL.Image.open(file_path))
-    plt.imshow(img)
-    r = matplotlib.patches.Rectangle((rect.x0, rect.y0), rect.width, rect.height, fill=False, edgecolor='white')
-    plt.gca().add_artist(r)
-    plt.show()
+    #file_path = IPOSE_TEST_DATA / 'mona_lisa.webp'
+    file_path = IPOSE_TEST_DATA / 'cs_women.webp'
+    rects = face_detection(file_path, 0.025)
+    print(rects)
+    with Image.open(file_path) as image:
+        draw = ImageDraw.Draw(image)
+        for rect in rects:
+            draw.rectangle(rect.bounding_box(), outline='white', width=3)
+        image.show()
