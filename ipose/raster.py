@@ -58,6 +58,16 @@ class Rectangle:
     width: int
     height: int
 
+    def copy(self) -> Rectangle:
+        """Return an identical copy of the rectangle.
+
+        Returns
+        -------
+        Rectangle
+            A new Rectangle object, identical to the original one.
+        """
+        return Rectangle(self.x0, self.y0, self.width, self.height)
+
     def area(self) -> int:
         """Return the area of the rectangle.
 
@@ -207,15 +217,22 @@ class Rectangle:
         Rectangle
             A new Rectangle object fitting into the target canvas.
         """
-        x0 = self.x0
-        y0 = self.y0
-        if self.width > width:
-            raise RuntimeError(f'{self} too wide to fit within {width} x {height}.')
-        if self.height > height:
-            raise RuntimeError(f'{self} too high to fit within {width} x {height}.')
-        return Rectangle(max(self.x0, 0), max(self.y0, 0), self.width, self.height)
+        # Create a verbatim copy of the original rectangle...
+        rect = self.copy()
+        # ...and work our way to the desired rectangle.
+        if rect.x0 < 0:
+            rect.x0 = 0
+        if rect.y0 < 0:
+            rect.y0 = 0
+        return rect
 
-    def __lt__(self, other):
+    def __eq__(self, other) -> bool:
+        """Overloaded equality operator.
+        """
+        return self.x0 == other.x0 and self.y0 == other.y0 and \
+            self.width == other.width and self.height == other.height
+
+    def __lt__(self, other) -> bool:
         """Comparison operator---this is such that :class:`Ractangle` instances
         get sorted by area by default.
         """
@@ -316,8 +333,8 @@ def crop_image_to_face():
 
 
 if __name__ == '__main__':
-    #file_path = IPOSE_TEST_DATA / 'mona_lisa.webp'
-    file_path = IPOSE_TEST_DATA / 'cs_women.webp'
+    file_path = IPOSE_TEST_DATA / 'mona_lisa.webp'
+    #file_path = IPOSE_TEST_DATA / 'cs_women.webp'
     rects = run_face_recognition(file_path, min_neighbors=2, min_fractional_size=0.02)
     with Image.open(file_path) as image:
         draw = ImageDraw.Draw(image)
