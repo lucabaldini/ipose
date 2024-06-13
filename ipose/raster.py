@@ -16,6 +16,7 @@
 
 """Various facilities to operate on raster images.
 """
+from __future__ import annotations
 
 import dataclasses
 import pathlib
@@ -115,12 +116,84 @@ class Rectangle:
         """Return the side of the equivalent square, rounded to the nearest integer
         (which is basically the geometric mean of the rectangle width and height).
 
+        Whenever the `fractional` word is used in the context of a rectangle, this
+        is the scale constituting the multiplier for the operation at hand.
+
         Returns
         -------
         int
             The (rounded) side of the square with the same area as the rectangle.
         """
         return self.rounded_geometric_mean(self.width, self.height)
+
+    def pad(self, top: int, right: int = None, bottom: int = None,
+        left: int = None) -> Rectangle:
+        """Pad the rectangle according to the input parameters.
+
+        Note that the order of the arguments is designed to make it easy for the
+        user to specify a single padding on four sides (passing only one argument)
+        different vertical and horizontal paddings (passing two arguments), as well
+        as arbitrary configurations.
+
+        Parameters
+        ----------
+        top
+            The top padding in pixels.
+
+        right
+            The right padding in pixels.
+
+        bottom
+            The bottom padding in pixels.
+
+        left
+            The left padding in pixels.
+
+        Returns
+        -------
+        Rectangle
+            A new rectangle, properly padded with respect to the original one.
+        """
+        right = right or top
+        bottom = bottom or top
+        left = left or right
+        return Rectangle(self.x0 - left, self.y0 - top, self.width + right + left,
+            self.height + top + bottom)
+
+    def fractional_pad(self, top: float, right: float = None, bottom: float = None,
+        left: float = None) -> Rectangle:
+        """This is similar in spirit to the :meth:`Rectangle.pad` method, except
+        for the fact that the padding is expresses as a fraction of the
+        original equivalent square side, as opposed to pixels.
+
+        Parameters
+        ----------
+        top
+            The top padding as a fraction of the equivalent square side.
+
+        right
+            The right padding as a fraction of the equivalent square side.
+
+        bottom
+            The bottom padding as a fraction of the equivalent square side.
+
+        left
+            The left padding as a fraction of the equivalent square side.
+
+        Returns
+        -------
+        Rectangle
+            A new rectangle, properly padded with respect to the original one.
+        """
+        side = self.equivalent_square_side()
+        top = round(top * side)
+        if right is not None:
+            right = round(right * side)
+        if bottom is not None:
+            bottom = round(bottom * side)
+        if left is not None:
+            left = round(left * side)
+        return self.pad(top, right, bottom, left)
 
     def __lt__(self, other):
         """Comparison operator---this is such that :class:`Ractangle` instances
@@ -143,6 +216,23 @@ def run_face_recognition(file_path: pathlib.Path | str, scale_factor: float = 1.
     according to the corresponding area from the smallest to the largest to help
     with the selection process downstream.
 
+    Note that this is producing squares (since apparently this is the way the default
+    model we are using was trained) that are only big enough to cover the visible
+    part of the face, and if you use this to crop a large image to the person face
+    it is very likely that you will want to add some padding on the four sides,
+    and especially on the top, which empirically seems to be the most overlooked
+    part of the face.
+
+    The ``min_neighbors`` parameter has an important effect on the results and
+    should be set on a case-by-case basis. The cascade classifier applies a sliding
+    window through the image, and initially it will capture a large number of false
+    positives. This parameter specifies the number of neighboring rectangles that
+    need to be identified for an object to be considered a valid detection: a value
+    of 0 is idiotic, and it will likely return an enourmous number of (possibly
+    overlapping) rectangles. Small values will yield comparatively more false positives.
+    I would say 2 is the absolute minimum one migh consider using, and something
+    around 5 is more germane to what is commonly found in tutorials online.
+
     Parameters
     ----------
     file_path
@@ -153,9 +243,9 @@ def run_face_recognition(file_path: pathlib.Path | str, scale_factor: float = 1.
         (passed along verbatim as ``scaleFactor`` to the ``detectMultiScale`` call).
 
     min_neighbors
-        Parameter specifying how many neighbors each candidate rectangle should have
-        to retain it (passed along verbatim as ``minNeighbors`` to the ``detectMultiScale``
-        call).
+        Parameter specifying how many neighbors each candidate rectangle should
+        have to retain it (passed along verbatim as ``minNeighbors`` to the
+        ``detectMultiScale`` call).
 
     min_fractional_size
         Minimum possible fractional object size. Objects smaller than that are ignored.
