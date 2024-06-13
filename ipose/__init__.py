@@ -17,6 +17,7 @@
 """System-wide facilities.
 """
 
+from loguru import logger
 from pathlib import Path
 
 from ipose.version import version as __version__
@@ -29,4 +30,5 @@ IPOSE_ROOT = Path(__file__).parent
 IPOSE_BASE = IPOSE_ROOT.parent
 IPOSE_DATA = IPOSE_BASE / 'data'
 IPOSE_DOCS = IPOSE_BASE / 'docs'
+IPOSE_EXT = IPOSE_BASE / 'ext'
 IPOSE_TESTS = IPOSE_BASE / 'tests'

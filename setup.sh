@@ -22,3 +22,6 @@ export PYTHONPATH=$IPOSE_ROOT:$PYTHONPATH
 # Add the bin folder to the $PATH so that we have the executables off hand.
 #
 export PATH=$IPOSE_ROOT/ipose/bin:$PATH
+
+
+export OPENCV_LOG_LEVEL=OFF

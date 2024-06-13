@@ -1,5 +1,5 @@
 loguru
-opencv-python
+opencv-python-headless
 openpyxl
 pandas
 pdfrw
