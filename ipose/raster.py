@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import dataclasses
+import numbers
 import pathlib
 
 import cv2
@@ -31,6 +32,9 @@ from PIL import Image, ImageDraw
 from ipose import logger
 from ipose import IPOSE_TEST_DATA
 
+
+_EXIF_ORIENTATION_TAG = 274
+_EXIF_ROTATION_DICT = {3: 180, 6: 270, 8: 90}
 _DEFAULT_FACE_DETECTION_MODEL_PATH = pathlib.Path(cv2.data.haarcascades) / 'haarcascade_frontalface_default.xml'
 
 
@@ -66,9 +70,11 @@ class Rectangle:
         if self.height is None:
             self.height = self.width
         # Also, make sure all the members are integers, as we are dealing with
-        # pixels in rastered images.
+        # pixels in rastered images. Note that we are using numbers.Integral, as
+        # opposed to the native Python int, as we want to be able to catch the
+        # numpy integral types as well.
         for item in (self.x0, self.y0, self.width, self.height):
-            if not isinstance(item, int):
+            if not isinstance(item, numbers.Integral):
                 raise RuntimeError(f'Wrong type for {self}')
 
     def copy(self) -> Rectangle:
@@ -348,10 +354,44 @@ def run_face_recognition(file_path: pathlib.Path | str, scale_factor: float = 1.
     return candidates
 
 
-def open_raster_image():
+def open_image(source: str | pathlib.Path | Image.Image) -> Image.Image:
+    """Open an existing image in read mode.
+
+    This is designed to make the downstream methods interoperable with either
+    pre-loaded images or image data on files, in that: if an Image.Image object is
+    passed as the first argument, the latter is returned immediately, while if the
+    firts argument is a string or a path, the correspoding file is opened in read
+    mode and the image within is returned.
+
+    Note the image is automatically rotated is the proper EXIF tag is found.
+
+    Parameters
+    ----------
+    source
+        The source of image data (i.e., an actual image or a path to an image file)
+
+    Returns
+    -------
+    PIL.Image.Image
+        The actual image object.
     """
-    """
-    pass
+    if isinstance(source, Image.Image):
+        return source
+    logger.info(f'Loading image data from {source}...')
+    with Image.open(file_path) as image:
+        # Parse the original image size and orientation.
+        w, h = image.size
+        orientation = image.getexif().get(_EXIF_ORIENTATION_TAG, None)
+        logger.debug(f'Original size: {w} x {h}, orientation: {orientation}')
+    # If the image is rotated, we need to change the orientation.
+    rotation = _EXIF_ROTATION_DICT.get(orientation, None)
+    if rotation is not None:
+        logger.debug(f'Applying a rotation by {rotation} degrees...')
+        image = image.rotate(rotation, expand=True)
+        w, h = image.size
+        logger.debug(f'Rotated size: {w} x {h}')
+    return image
+
 
 def crop_image_to_face():
     """
@@ -365,14 +405,14 @@ if __name__ == '__main__':
     file_path = IPOSE_TEST_DATA / 'mona_lisa.webp'
     #file_path = IPOSE_TEST_DATA / 'cs_women.webp'
     rects = run_face_recognition(file_path, min_neighbors=2, min_fractional_size=0.02)
-    with Image.open(file_path) as image:
-        draw = ImageDraw.Draw(image)
-        for rect in rects:
-            print('Original: ', rect)
-            draw.rectangle(rect.bounding_box(), outline='white', width=2)
-            pad_rect = rect.pad_face()
-            print('Padded:', pad_rect)
-            pad_rect = pad_rect.fit_to_size(*image.size)
-            print('Fitted: ', pad_rect)
-            draw.rectangle(pad_rect.bounding_box(), outline='red', width=2)
-        image.show()
+    image = open_image(file_path)
+    draw = ImageDraw.Draw(image)
+    for rect in rects:
+        print('Original: ', rect)
+        draw.rectangle(rect.bounding_box(), outline='white', width=2)
+        pad_rect = rect.pad_face()
+        print('Padded:', pad_rect)
+        pad_rect = pad_rect.fit_to_size(*image.size)
+        print('Fitted: ', pad_rect)
+        draw.rectangle(pad_rect.bounding_box(), outline='red', width=2)
+    image.show()
