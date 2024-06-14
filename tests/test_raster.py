@@ -14,8 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from ipose import logger
-from ipose.raster import Rectangle
+from ipose import logger, IPOSE_TEST_DATA
+from ipose.raster import Rectangle, open_image
 
 
 def test_rectangle_base():
@@ -44,3 +44,11 @@ def test_rectangle_fitting():
     assert rect.fit_to_size(400, 200) == Rectangle(0, 0, 100, 100)
     assert rect.fit_to_size(100, 100) == Rectangle(0, 0, 100, 100)
     #print(rect.fit_to_size(80, 100))
+
+def test_open_image():
+    """Test the open_image() function in all its flavors.
+    """
+    file_path = IPOSE_TEST_DATA / 'mona_lisa.webp'
+    image = open_image(file_path)
+    image = open_image(str(file_path))
+    image = open_image(image)
