@@ -24,18 +24,16 @@ import numbers
 import pathlib
 
 import cv2
-from matplotlib import pyplot as plt
-import matplotlib.patches
 import numpy as np
-from PIL import Image, ImageDraw
+import PIL.Image
 
 from ipose import logger
-from ipose import IPOSE_TEST_DATA
 
 
 _EXIF_ORIENTATION_TAG = 274
 _EXIF_ROTATION_DICT = {3: 180, 6: 270, 8: 90}
-_DEFAULT_FACE_DETECTION_MODEL_PATH = pathlib.Path(cv2.data.haarcascades) / 'haarcascade_frontalface_default.xml'
+_DEFAULT_FACE_DETECTION_MODEL_PATH = pathlib.Path(cv2.data.haarcascades) /\
+    'haarcascade_frontalface_default.xml'
 
 
 @dataclasses.dataclass
@@ -58,6 +56,7 @@ class Rectangle:
         The height of the rectangle.
     """
 
+    # pylint: disable=invalid-name
     x0: int
     y0: int
     width: int
@@ -249,16 +248,14 @@ class Rectangle:
         # Create a verbatim copy of the original rectangle...
         rect = self.copy()
         # ...and work our way to the desired rectangle.
-        if rect.width > width:
-            rect.width = width
-        if rect.height > height:
-            rect.height > height
+        rect.width = min(rect.width, width)
+        rect.height = min(rect.height, height)
+        # We want to make something clever, here, but the specifics should be
+        # determined based on actual data.
         if self.is_square() and not rect.is_square():
             raise RuntimeError('Final rectangle is not square.')
-        if rect.x0 < 0:
-            rect.x0 = 0
-        if rect.y0 < 0:
-            rect.y0 = 0
+        rect.x0 = max(rect.x0, 0)
+        rect.y0 = max(rect.y0, 0)
         return rect
 
     def __eq__(self, other) -> bool:
@@ -330,6 +327,7 @@ def run_face_recognition(file_path: pathlib.Path | str, scale_factor: float = 1.
     list[Rectangle]
         The list of :class:`Rectangle` objects containing the face candidates.
     """
+    # pylint: disable=no-member
     # Create a CascadeClassifier object with the proper model file (and the file
     # path must be a string, not a Path, here).
     classifier = cv2.CascadeClassifier(f'{_DEFAULT_FACE_DETECTION_MODEL_PATH}')
@@ -354,7 +352,7 @@ def run_face_recognition(file_path: pathlib.Path | str, scale_factor: float = 1.
     return candidates
 
 
-def open_image(source: str | pathlib.Path | Image.Image) -> Image.Image:
+def open_image(source: str | pathlib.Path | PIL.Image.Image) -> PIL.Image.Image:
     """Open an existing image in read mode.
 
     This is designed to make the downstream methods interoperable with either
@@ -375,44 +373,44 @@ def open_image(source: str | pathlib.Path | Image.Image) -> Image.Image:
     PIL.Image.Image
         The actual image object.
     """
-    if isinstance(source, Image.Image):
+    if isinstance(source, PIL.Image.Image):
         return source
     logger.info(f'Loading image data from {source}...')
-    with Image.open(file_path) as image:
+    with PIL.Image.open(source) as image:
         # Parse the original image size and orientation.
-        w, h = image.size
+        width, height = image.size
         orientation = image.getexif().get(_EXIF_ORIENTATION_TAG, None)
-        logger.debug(f'Original size: {w} x {h}, orientation: {orientation}')
+        logger.debug(f'Original size: {width} x {height}, orientation: {orientation}')
     # If the image is rotated, we need to change the orientation.
     rotation = _EXIF_ROTATION_DICT.get(orientation, None)
     if rotation is not None:
         logger.debug(f'Applying a rotation by {rotation} degrees...')
         image = image.rotate(rotation, expand=True)
-        w, h = image.size
-        logger.debug(f'Rotated size: {w} x {h}')
+        width, height = image.size
+        logger.debug(f'Rotated size: {width} x {height}')
     return image
 
 
-def crop_image_to_face():
-    """
-    """
-    pass
+#def crop_image_to_face():
+#    """
+#    """
 
 
 
 
-if __name__ == '__main__':
-    file_path = IPOSE_TEST_DATA / 'mona_lisa.webp'
-    #file_path = IPOSE_TEST_DATA / 'cs_women.webp'
-    rects = run_face_recognition(file_path, min_neighbors=2, min_fractional_size=0.02)
-    image = open_image(file_path)
-    draw = ImageDraw.Draw(image)
-    for rect in rects:
-        print('Original: ', rect)
-        draw.rectangle(rect.bounding_box(), outline='white', width=2)
-        pad_rect = rect.pad_face()
-        print('Padded:', pad_rect)
-        pad_rect = pad_rect.fit_to_size(*image.size)
-        print('Fitted: ', pad_rect)
-        draw.rectangle(pad_rect.bounding_box(), outline='red', width=2)
-    image.show()
+
+# if __name__ == '__main__':
+#     file_path = IPOSE_TEST_DATA / 'mona_lisa.webp'
+#     #file_path = IPOSE_TEST_DATA / 'cs_women.webp'
+#     rects = run_face_recognition(file_path, min_neighbors=2, min_fractional_size=0.02)
+#     image = open_image(file_path)
+#     draw = ImageDraw.Draw(image)
+#     for rect in rects:
+#         print('Original: ', rect)
+#         draw.rectangle(rect.bounding_box(), outline='white', width=2)
+#         pad_rect = rect.pad_face()
+#         print('Padded:', pad_rect)
+#         pad_rect = pad_rect.fit_to_size(*image.size)
+#         print('Fitted: ', pad_rect)
+#         draw.rectangle(pad_rect.bounding_box(), outline='red', width=2)
+#     image.show()
