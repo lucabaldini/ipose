@@ -394,23 +394,3 @@ def open_image(source: str | pathlib.Path | PIL.Image.Image) -> PIL.Image.Image:
 #def crop_image_to_face():
 #    """
 #    """
-
-
-
-
-
-# if __name__ == '__main__':
-#     file_path = IPOSE_TEST_DATA / 'mona_lisa.webp'
-#     #file_path = IPOSE_TEST_DATA / 'cs_women.webp'
-#     rects = run_face_recognition(file_path, min_neighbors=2, min_fractional_size=0.02)
-#     image = open_image(file_path)
-#     draw = ImageDraw.Draw(image)
-#     for rect in rects:
-#         print('Original: ', rect)
-#         draw.rectangle(rect.bounding_box(), outline='white', width=2)
-#         pad_rect = rect.pad_face()
-#         print('Padded:', pad_rect)
-#         pad_rect = pad_rect.fit_to_size(*image.size)
-#         print('Fitted: ', pad_rect)
-#         draw.rectangle(pad_rect.bounding_box(), outline='red', width=2)
-#     image.show()
