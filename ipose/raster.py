@@ -507,13 +507,18 @@ def resize_image(source: str | pathlib.Path | PIL.Image.Image, width: int = None
 
 
 def crop_to_face(input_file_path: str | pathlib.Path, output_file_path: str | pathlib.Path,
-    width: int = 100, scale_factor: float = 1.1, min_neighbors: int = 2,
-    min_fractional_size: float = 0.15, interactive: bool = False) -> None:
+    width: int = 100, reco_kwargs: dict = None, pad_kwargs: dict = None,
+    save_kwargs: dict = None, interactive: bool = False) -> PIL.Image.Image:
     """Crop a given image to face.
     """
     # pylint: disable=too-many-arguments
-    candidates = run_face_recognition(input_file_path, scale_factor, min_neighbors,
-        min_fractional_size)
+    if reco_kwargs is None:
+        reco_kwargs = {}
+    if pad_kwargs is None:
+        pad_kwargs = {}
+    if save_kwargs is None:
+        save_kwargs = {}
+    candidates = run_face_recognition(input_file_path, **reco_kwargs)
     num_candidates = len(candidates)
     image = open_image(input_file_path)
     if num_candidates == 0:
@@ -525,17 +530,16 @@ def crop_to_face(input_file_path: str | pathlib.Path, output_file_path: str | pa
     # Go on with the best face candidate. Note that we cache the rectangles at all
     # the intermediate steps for debugging purposes, in case we need them...
     rect = candidates[-1]
-    pad_rect = rect.pad_face()
+    pad_rect = rect.pad_face(**pad_kwargs)
     fit_rect = pad_rect.fit_to_image(image)
-    box = fit_rect.bounding_box()
-    logger.info(f'Target face bounding box: {box}')
-    resize_image(image, width, width, box=box, destination=output_file_path)
     if interactive:
         logger.debug(f'Original bounding box: {rect.bounding_box()}')
         logger.debug(f'Padded bounding box: {pad_rect.bounding_box()}')
-        logger.debug(f'Fitted bounding box: {fit_rect.bounding_box()}')
         draw = PIL.ImageDraw.Draw(image)
         draw.rectangle(rect.bounding_box(), outline='white', width=2)
         draw.rectangle(pad_rect.bounding_box(), outline='yellow', width=2)
         draw.rectangle(fit_rect.bounding_box(), outline='red', width=2)
         image.show()
+    box = fit_rect.bounding_box()
+    logger.info(f'Target face bounding box: {box}')
+    return resize_image(image, width, width, box=box, destination=output_file_path, **save_kwargs)

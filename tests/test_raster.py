@@ -66,4 +66,5 @@ def test_crop_to_face():
     """
     input_file_path = IPOSE_TEST_DATA / 'mona_lisa.webp'
     output_file_path = IPOSE_DATA / 'mona_lisa_crop.png'
-    crop_to_face(input_file_path, output_file_path, interactive=True)
+    crop_to_face(input_file_path, output_file_path,
+        pad_kwargs=dict(horizontal_fractional_padding=0.25), interactive=False)
