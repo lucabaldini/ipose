@@ -485,6 +485,24 @@ def resize_image(image: PIL.Image.Image, width: int = None, height: int = None,
     return image.resize((width, height), resample, box, reducing_gap)
 
 
+def crop_image(image: PIL.Image.Image, rectangle: Rectangle) -> PIL.Image.Image:
+    """
+    """
+    pass
+
+
+def autocrop_image(image: PIL.Image.Image) -> PIL.Image.Image:
+    """
+    """
+    pass
+
+
+def pad_image(image: PIL.Image.Image, aspect_ratio: float) -> PIL.Image.Image:
+    """
+    """
+    pass
+
+
 def crop_to_face(file_path: str | pathlib.Path, size: int = 100, reco_kwargs: dict = None,
     pad_kwargs: dict = None, interactive: bool = False) -> PIL.Image.Image:
     """Crop a given image to face.
