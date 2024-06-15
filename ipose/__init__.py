@@ -17,6 +17,7 @@
 """System-wide facilities.
 """
 
+import os
 from pathlib import Path
 import sys
 
@@ -30,7 +31,6 @@ __PACKAGE_NAME__ = 'ipose'
 # Basic package structure.
 IPOSE_ROOT = Path(__file__).parent
 IPOSE_BASE = IPOSE_ROOT.parent
-IPOSE_DATA = IPOSE_BASE / 'data'
 IPOSE_DOCS = IPOSE_BASE / 'docs'
 IPOSE_EXT = IPOSE_BASE / 'ext'
 IPOSE_TESTS = IPOSE_BASE / 'tests'
@@ -39,3 +39,14 @@ IPOSE_TEST_DATA = IPOSE_TESTS / 'data'
 DEFAULT_LOGURU_FORMAT = '>>> <level>{message}</level>'
 DEFAULT_LOGURU_HANDLER = dict(sink=sys.stderr, colorize=True, format=DEFAULT_LOGURU_FORMAT)
 logger.configure(handlers=[DEFAULT_LOGURU_HANDLER], levels=None)
+
+# The path to the base folder for the output data defaults to ~/iposedata,
+# but can be changed via the $IPOSE_DATA environmental variable.
+# Note this folder is created at the first module import if it does not exist.
+try:
+    IPOSE_DATA = Path(os.environ['IPOSE_DATA'])
+except KeyError:
+    IPOSE_DATA = Path.home() / 'iposedata'
+if not IPOSE_DATA.exists():
+    logger.info(f'Creating folder {IPOSE_DATA}...')
+    Path.mkdir(IPOSE_DATA, parents=True)

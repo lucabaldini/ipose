@@ -26,6 +26,7 @@ import pathlib
 import cv2
 import numpy as np
 import PIL.Image
+import PIL.ImageDraw
 
 from ipose import logger
 
@@ -230,7 +231,7 @@ class Rectangle:
         return self.pad(top, right, bottom)
 
     def fit_to_size(self, width: int, height: int) -> Rectangle:
-        """Fit a given rectangle to a given image canvas.
+        """Fit a given rectangle to a given size.
 
         Parameters
         ----------
@@ -257,6 +258,21 @@ class Rectangle:
         rect.x0 = max(rect.x0, 0)
         rect.y0 = max(rect.y0, 0)
         return rect
+
+    def fit_to_image(self, image: PIL.Image.Image) -> Rectangle:
+        """Fit a given rectangle to a given image.
+
+        Parameters
+        ----------
+        image
+            The target image.
+
+        Returns
+        -------
+        Rectangle
+            A new Rectangle object fitting into the target canvas.
+        """
+        return self.fit_to_size(*image.size)
 
     def __eq__(self, other) -> bool:
         """Overloaded equality operator.
@@ -492,7 +508,7 @@ def resize_image(source: str | pathlib.Path | PIL.Image.Image, width: int = None
 
 def crop_to_face(input_file_path: str | pathlib.Path, output_file_path: str | pathlib.Path,
     width: int = 100, scale_factor: float = 1.1, min_neighbors: int = 2,
-    min_fractional_size: float = 0.15) -> None:
+    min_fractional_size: float = 0.15, interactive: bool = False) -> None:
     """Crop a given image to face.
     """
     # pylint: disable=too-many-arguments
@@ -506,6 +522,20 @@ def crop_to_face(input_file_path: str | pathlib.Path, output_file_path: str | pa
         return
     if num_candidates > 1:
         logger.warning(f'Multiple face candidates found in {input_file_path}, taking largest...')
-    box = candidates[-1].bounding_box()
+    # Go on with the best face candidate. Note that we cache the rectangles at all
+    # the intermediate steps for debugging purposes, in case we need them...
+    rect = candidates[-1]
+    pad_rect = rect.pad_face()
+    fit_rect = pad_rect.fit_to_image(image)
+    box = fit_rect.bounding_box()
     logger.info(f'Target face bounding box: {box}')
-    resize_image(image, width=width, box=box, destination=output_file_path)
+    resize_image(image, width, width, box=box, destination=output_file_path)
+    if interactive:
+        logger.debug(f'Original bounding box: {rect.bounding_box()}')
+        logger.debug(f'Padded bounding box: {pad_rect.bounding_box()}')
+        logger.debug(f'Fitted bounding box: {fit_rect.bounding_box()}')
+        draw = PIL.ImageDraw.Draw(image)
+        draw.rectangle(rect.bounding_box(), outline='white', width=2)
+        draw.rectangle(pad_rect.bounding_box(), outline='yellow', width=2)
+        draw.rectangle(fit_rect.bounding_box(), outline='red', width=2)
+        image.show()
