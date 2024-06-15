@@ -507,9 +507,36 @@ def resize_image(source: str | pathlib.Path | PIL.Image.Image, width: int = None
 
 
 def crop_to_face(input_file_path: str | pathlib.Path, output_file_path: str | pathlib.Path,
-    width: int = 100, reco_kwargs: dict = None, pad_kwargs: dict = None,
+    size: int = 100, reco_kwargs: dict = None, pad_kwargs: dict = None,
     save_kwargs: dict = None, interactive: bool = False) -> PIL.Image.Image:
     """Crop a given image to face.
+
+    This is running a face recognition round using the opencv facilities, padding
+    the best face candidate, and fitting the resulting square within the original
+    image.
+
+    Parameters
+    ----------
+    input_file_path
+        The path to the input file.
+
+    output_file_path
+        The path to the output file.
+
+    size
+        The size of the output image (which is square by construction).
+
+    reco_kwargs
+        The keyword arguments to be passed to the :meth:`run_face_recognition` call.
+
+    pad_kwarg
+        The keyword arguments to be passed to the :meth:`Rectangle.pad_face` call.
+
+    save_kwargs
+        The keyword arguments to be passed to the :meth:`save_image` call.
+
+    interactive
+        If True, draw the original image and all the relevant bounding boxes.
     """
     # pylint: disable=too-many-arguments
     if reco_kwargs is None:
@@ -542,4 +569,4 @@ def crop_to_face(input_file_path: str | pathlib.Path, output_file_path: str | pa
         image.show()
     box = fit_rect.bounding_box()
     logger.info(f'Target face bounding box: {box}')
-    return resize_image(image, width, width, box=box, destination=output_file_path, **save_kwargs)
+    return resize_image(image, size, size, box=box, destination=output_file_path, **save_kwargs)
