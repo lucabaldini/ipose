@@ -418,7 +418,7 @@ def save_image(image: PIL.Image.Image, file_path: str | pathlib.Path, **kwargs) 
     kwargs
         The optional keyword arguments to be passed to the file writer.
     """
-    logger.info(f'Saving image to {file_path} with {kwargs}...')
+    logger.info(f'Saving image to {file_path} with parameters {kwargs}...')
     image.save(file_path, **kwargs)
 
 
@@ -495,7 +495,7 @@ def crop_to_face(file_path: str | pathlib.Path, size: int = 100, reco_kwargs: di
 
     Note this is taking a file path as the first parameter (as opposed to an image)
     because we need two passes on the same file: the first for the face recognition
-    algorithm and the second for the actual cropping. 
+    algorithm and the second for the actual cropping.
 
     Parameters
     ----------
