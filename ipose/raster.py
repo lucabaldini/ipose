@@ -493,6 +493,10 @@ def crop_to_face(file_path: str | pathlib.Path, size: int = 100, reco_kwargs: di
     the best face candidate, and fitting the resulting square within the original
     image.
 
+    Note this is taking a file path as the first parameter (as opposed to an image)
+    because we need two passes on the same file: the first for the face recognition
+    algorithm and the second for the actual cropping. 
+
     Parameters
     ----------
     file_path
