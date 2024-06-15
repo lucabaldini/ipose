@@ -272,8 +272,8 @@ class Rectangle:
 
 
 
-def run_face_recognition(file_path: pathlib.Path | str, scale_factor: float = 1.1,
-    min_neighbors: int = 5, min_fractional_size: float = 0.15) -> list[Rectangle]:
+def run_face_recognition(file_path: str | pathlib.Path, scale_factor: float = 1.1,
+    min_neighbors: int = 2, min_fractional_size: float = 0.15) -> list[Rectangle]:
     """Minimal wrapper around the standard opencv face recognition, see, e.g,
     https://www.datacamp.com/tutorial/face-detection-python-opencv
 
@@ -391,6 +391,121 @@ def open_image(source: str | pathlib.Path | PIL.Image.Image) -> PIL.Image.Image:
     return image
 
 
-#def crop_image_to_face():
-#    """
-#    """
+def save_image(image: PIL.Image.Image, file_path: str | pathlib.Path, **kwargs) -> None:
+    """Save an image to file.
+
+    This is a thin wrapper upon the PIL.Image.Image.save() function, where we
+    don't allow the destination to be a file descriptor. All the keyword arguments
+    that are supported for the various output format are thoroughly described at
+    https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
+
+    Parameters
+    ----------
+    image
+        The image to be saved.
+
+    file_path
+        The path to the output file.
+
+    kwargs
+        The optional keyword arguments to be passed to the file writer.
+    """
+    logger.info(f'Saving image to {file_path} with {kwargs}...')
+    image.save(file_path, **kwargs)
+
+
+def resize_image(source: str | pathlib.Path | PIL.Image.Image, width: int = None,
+    height: int = None, resample=PIL.Image.Resampling.LANCZOS,
+    box: tuple[float, float, float, float] = None, reducing_gap: float = None,
+    destination: str | pathlib.Path = None, **kwargs) -> PIL.Image.Image:
+    """Resize an existing image.
+
+    This is basically calling PIL.Image.Image.resize() under the hood, but does not
+    require to specify the full output size---either the target width or heigh will
+    suffice, in which case the aspect ratio is preserved. Also, if the `destination`
+    parameter is specified, the resulting image is written to file, so that a full
+    file-to-file resize is actually possible with a single function call.
+
+    More information about the resampling filters can be found at
+    https://pillow.readthedocs.io/en/stable/handbook/concepts.html#concept-filters
+
+    Parameters
+    ----------
+    source
+        The source image, in the form of a PIL.Image.Image object or a file path.
+
+    width
+        The target image width (if not provided it is determined by the target
+        height preserving the aspect ratio).
+
+    height
+        The target image height (if not provided it is determined by the target
+        width preserving the aspect ratio).
+
+    resample
+        An optional resampling filter. This can be one of Resampling.NEAREST,
+        Resampling.BOX, Resampling.BILINEAR, Resampling.HAMMING, Resampling.BICUBIC
+        or Resampling.LANCZOS.
+
+    box
+        An optional 4-tuple of floats providing the source image region to be scaled.
+        The values must be within (0, 0, width, height) rectangle. If omitted or
+        None, the entire source is used.
+
+    reducing_gap
+        Apply optimization by resizing the image in two steps. First, reducing the
+        image by integer times using `reduce()``. Second, resizing using regular resampling.
+        The last step changes size no less than by `reducing_gap times`. `reducing_gap`
+        may be None (no first step is performed) or should be greater than 1.0.
+        The bigger `reducing_gap`, the closer the result to the fair resampling.
+        The smaller `reducing_gap`, the faster resizing. With `reducing_gap` greater
+        or equal to 3.0, the result is indistinguishable from fair resampling in
+        most cases.
+
+    destination
+        The optional path to the output file.
+
+    kwargs
+        All the optional keyword arguments to be passed to the file writer.
+    """
+    # pylint: disable=too-many-arguments
+    # If we are not providing neither the target width nor the target height
+    # there is nothing we can do except giving up.
+    if width is None and height is None:
+        raise RuntimeError('Please provide at least one length to resize the image.')
+    image = open_image(source)
+    original_width, original_height = image.size
+    # If only one parameter is provided, then we calculate the other by preserving
+    # the aspect ratio, and we effectively resize to width...
+    if height is None:
+        height = round(width / original_width * original_height)
+    # ...or to height.
+    elif width is None:
+        width = round(height / original_height * original_width)
+    # And now we are good to go.
+    logger.info(f'Resizing image ({original_width}, {original_height}) -> ({width}, {height})...')
+    image = image.resize((width, height), resample, box, reducing_gap)
+    if destination is not None:
+        save_image(image, destination, **kwargs)
+    return image
+
+
+def crop_to_face(input_file_path: str | pathlib.Path, output_file_path: str | pathlib.Path,
+    width: int = 100, scale_factor: float = 1.1, min_neighbors: int = 2,
+    min_fractional_size: float = 0.15) -> None:
+    """Crop a given image to face.
+    """
+    # pylint: disable=too-many-arguments
+    candidates = run_face_recognition(input_file_path, scale_factor, min_neighbors,
+        min_fractional_size)
+    num_candidates = len(candidates)
+    image = open_image(input_file_path)
+    if num_candidates == 0:
+        logger.warning(f'No face candidate found in {input_file_path}, writing entire image...')
+        save_image(image, output_file_path)
+        return
+    if num_candidates > 1:
+        logger.warning(f'Multiple face candidates found in {input_file_path}, taking largest...')
+    box = candidates[-1].bounding_box()
+    logger.info(f'Target face bounding box: {box}')
+    resize_image(image, width=width, box=box, destination=output_file_path)
