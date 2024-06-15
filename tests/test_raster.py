@@ -53,7 +53,6 @@ def test_open_image():
     file_path = IPOSE_TEST_DATA / 'mona_lisa.webp'
     image = open_image(file_path)
     image = open_image(str(file_path))
-    image = open_image(image)
 
 def test_face_recognition():
     """Test the face-detecttion algorithm.
@@ -64,7 +63,5 @@ def test_face_recognition():
 def test_crop_to_face():
     """Test the actual face crop.
     """
-    input_file_path = IPOSE_TEST_DATA / 'mona_lisa.webp'
-    output_file_path = IPOSE_DATA / 'mona_lisa_crop.png'
-    crop_to_face(input_file_path, output_file_path,
-        pad_kwargs=dict(horizontal_fractional_padding=0.25), interactive=False)
+    file_path = IPOSE_TEST_DATA / 'mona_lisa.webp'
+    image = crop_to_face(file_path, pad_kwargs=dict(horizontal_fractional_padding=0.25))

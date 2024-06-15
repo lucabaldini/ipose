@@ -368,31 +368,23 @@ def run_face_recognition(file_path: str | pathlib.Path, scale_factor: float = 1.
     return candidates
 
 
-def open_image(source: str | pathlib.Path | PIL.Image.Image) -> PIL.Image.Image:
+def open_image(file_path: str | pathlib.Path) -> PIL.Image.Image:
     """Open an existing image in read mode.
-
-    This is designed to make the downstream methods interoperable with either
-    pre-loaded images or image data on files, in that: if an Image.Image object is
-    passed as the first argument, the latter is returned immediately, while if the
-    firts argument is a string or a path, the correspoding file is opened in read
-    mode and the image within is returned.
 
     Note the image is automatically rotated is the proper EXIF tag is found.
 
     Parameters
     ----------
-    source
-        The source of image data (i.e., an actual image or a path to an image file)
+    file_path
+        The path to the image file.
 
     Returns
     -------
     PIL.Image.Image
         The actual image object.
     """
-    if isinstance(source, PIL.Image.Image):
-        return source
-    logger.info(f'Loading image data from {source}...')
-    with PIL.Image.open(source) as image:
+    logger.info(f'Loading image data from {file_path}...')
+    with PIL.Image.open(file_path) as image:
         # Parse the original image size and orientation.
         width, height = image.size
         orientation = image.getexif().get(_EXIF_ORIENTATION_TAG, None)
@@ -430,25 +422,22 @@ def save_image(image: PIL.Image.Image, file_path: str | pathlib.Path, **kwargs) 
     image.save(file_path, **kwargs)
 
 
-def resize_image(source: str | pathlib.Path | PIL.Image.Image, width: int = None,
-    height: int = None, resample=PIL.Image.Resampling.LANCZOS,
-    box: tuple[float, float, float, float] = None, reducing_gap: float = None,
-    destination: str | pathlib.Path = None, **kwargs) -> PIL.Image.Image:
+def resize_image(image: PIL.Image.Image, width: int = None, height: int = None,
+    resample=PIL.Image.Resampling.LANCZOS, box: tuple[float, float, float, float] = None,
+    reducing_gap: float = None) -> PIL.Image.Image:
     """Resize an existing image.
 
     This is basically calling PIL.Image.Image.resize() under the hood, but does not
     require to specify the full output size---either the target width or heigh will
-    suffice, in which case the aspect ratio is preserved. Also, if the `destination`
-    parameter is specified, the resulting image is written to file, so that a full
-    file-to-file resize is actually possible with a single function call.
+    suffice, in which case the aspect ratio is preserved.
 
     More information about the resampling filters can be found at
     https://pillow.readthedocs.io/en/stable/handbook/concepts.html#concept-filters
 
     Parameters
     ----------
-    source
-        The source image, in the form of a PIL.Image.Image object or a file path.
+    image
+        The original image.
 
     width
         The target image width (if not provided it is determined by the target
@@ -477,19 +466,12 @@ def resize_image(source: str | pathlib.Path | PIL.Image.Image, width: int = None
         The smaller `reducing_gap`, the faster resizing. With `reducing_gap` greater
         or equal to 3.0, the result is indistinguishable from fair resampling in
         most cases.
-
-    destination
-        The optional path to the output file.
-
-    kwargs
-        All the optional keyword arguments to be passed to the file writer.
     """
     # pylint: disable=too-many-arguments
     # If we are not providing neither the target width nor the target height
     # there is nothing we can do except giving up.
     if width is None and height is None:
         raise RuntimeError('Please provide at least one length to resize the image.')
-    image = open_image(source)
     original_width, original_height = image.size
     # If only one parameter is provided, then we calculate the other by preserving
     # the aspect ratio, and we effectively resize to width...
@@ -500,15 +482,11 @@ def resize_image(source: str | pathlib.Path | PIL.Image.Image, width: int = None
         width = round(height / original_height * original_width)
     # And now we are good to go.
     logger.info(f'Resizing image ({original_width}, {original_height}) -> ({width}, {height})...')
-    image = image.resize((width, height), resample, box, reducing_gap)
-    if destination is not None:
-        save_image(image, destination, **kwargs)
-    return image
+    return image.resize((width, height), resample, box, reducing_gap)
 
 
-def crop_to_face(input_file_path: str | pathlib.Path, output_file_path: str | pathlib.Path,
-    size: int = 100, reco_kwargs: dict = None, pad_kwargs: dict = None,
-    save_kwargs: dict = None, interactive: bool = False) -> PIL.Image.Image:
+def crop_to_face(file_path: str | pathlib.Path, size: int = 100, reco_kwargs: dict = None,
+    pad_kwargs: dict = None, interactive: bool = False) -> PIL.Image.Image:
     """Crop a given image to face.
 
     This is running a face recognition round using the opencv facilities, padding
@@ -517,11 +495,8 @@ def crop_to_face(input_file_path: str | pathlib.Path, output_file_path: str | pa
 
     Parameters
     ----------
-    input_file_path
-        The path to the input file.
-
-    output_file_path
-        The path to the output file.
+    file_path
+        The path to the original image.
 
     size
         The size of the output image (which is square by construction).
@@ -532,9 +507,6 @@ def crop_to_face(input_file_path: str | pathlib.Path, output_file_path: str | pa
     pad_kwarg
         The keyword arguments to be passed to the :meth:`Rectangle.pad_face` call.
 
-    save_kwargs
-        The keyword arguments to be passed to the :meth:`save_image` call.
-
     interactive
         If True, draw the original image and all the relevant bounding boxes.
     """
@@ -543,17 +515,15 @@ def crop_to_face(input_file_path: str | pathlib.Path, output_file_path: str | pa
         reco_kwargs = {}
     if pad_kwargs is None:
         pad_kwargs = {}
-    if save_kwargs is None:
-        save_kwargs = {}
-    candidates = run_face_recognition(input_file_path, **reco_kwargs)
+    candidates = run_face_recognition(file_path, **reco_kwargs)
     num_candidates = len(candidates)
-    image = open_image(input_file_path)
+    image = open_image(file_path)
     if num_candidates == 0:
-        logger.warning(f'No face candidate found in {input_file_path}, writing entire image...')
+        logger.warning(f'No face candidate found in {file_path}, writing entire image...')
         save_image(image, output_file_path)
         return
     if num_candidates > 1:
-        logger.warning(f'Multiple face candidates found in {input_file_path}, taking largest...')
+        logger.warning(f'Multiple face candidates found in {file_path}, taking largest...')
     # Go on with the best face candidate. Note that we cache the rectangles at all
     # the intermediate steps for debugging purposes, in case we need them...
     rect = candidates[-1]
@@ -569,4 +539,4 @@ def crop_to_face(input_file_path: str | pathlib.Path, output_file_path: str | pa
         image.show()
     box = fit_rect.bounding_box()
     logger.info(f'Target face bounding box: {box}')
-    return resize_image(image, size, size, box=box, destination=output_file_path, **save_kwargs)
+    return resize_image(image, size, size, box=box)
