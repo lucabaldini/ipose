@@ -230,15 +230,21 @@ class Rectangle:
         bottom = 2 * right - top
         return self.pad(top, right, bottom)
 
-    def fit_to_size(self, width: int, height: int) -> Rectangle:
+    def fit_to_size(self, max_width: int, max_height: int) -> Rectangle:
         """Fit a given rectangle to a given size.
+
+        This is notably used in the last step of face-cropping, where we have to
+        make sure that the rectangle containing the face, after padding, is contained
+        in the original picture---and do something if it's not. Also note that
+        if the starting rectange is square we make sure that the final rectangle
+        is square as well, which is the intended behavior when cropping a face.
 
         Parameters
         ----------
-        width
+        max_width
             The width of the target canvas image in pixels.
 
-        height
+        max_height
             The height of the target canvas image in pixels.
 
         Returns
@@ -246,17 +252,27 @@ class Rectangle:
         Rectangle
             A new Rectangle object fitting into the target canvas.
         """
-        # Create a verbatim copy of the original rectangle...
-        rect = self.copy()
-        # ...and work our way to the desired rectangle.
-        rect.width = min(rect.width, width)
-        rect.height = min(rect.height, height)
-        # We want to make something clever, here, but the specifics should be
-        # determined based on actual data.
+        # Our baseline rectangle is just limited to the image dimensions, and
+        # shifted when necessary to fit into the image itself.
+        width = min(self.width, max_width)
+        height = min(self.height, max_height)
+        x0 = np.clip(self.x0, 0, max_width - width)
+        y0 = np.clip(self.y0, 0, max_height - height)
+        rect = Rectangle(x0, y0, width, height)
+        # And if the original rectangle is a square (e.g., when cropping a face)
+        # we might have to do some lifting in order to ensure that the output
+        # rectangle is also a square.
         if self.is_square() and not rect.is_square():
-            raise RuntimeError('Final rectangle is not square.')
-        rect.x0 = max(rect.x0, 0)
-        rect.y0 = max(rect.y0, 0)
+            logger.debug(f'{rect} is not square...')
+            delta = round(0.5 * (rect.width - rect.height))
+            if delta > 0:
+                rect.x0 = max(self.x0 + delta, 0)
+            else:
+                rect.y0 = max(self.y0 + delta, 0)
+            side = min(rect.width, rect.height)
+            rect.width = side
+            rect.height = side
+            logger.debug(f'Post-processed to {rect}.')
         return rect
 
     def fit_to_image(self, image: PIL.Image.Image) -> Rectangle:
@@ -466,6 +482,11 @@ def resize_image(image: PIL.Image.Image, width: int = None, height: int = None,
         The smaller `reducing_gap`, the faster resizing. With `reducing_gap` greater
         or equal to 3.0, the result is indistinguishable from fair resampling in
         most cases.
+
+    Returns
+    -------
+    PIL.Image.Image
+        The resized image.
     """
     # pylint: disable=too-many-arguments
     # If we are not providing neither the target width nor the target height
@@ -481,14 +502,29 @@ def resize_image(image: PIL.Image.Image, width: int = None, height: int = None,
     elif width is None:
         width = round(height / original_height * original_width)
     # And now we are good to go.
-    logger.info(f'Resizing image ({original_width}, {original_height}) -> ({width}, {height})...')
+    logger.info(f'Resizing image {original_width} x {original_height} -> {width} x {height}...')
     return image.resize((width, height), resample, box, reducing_gap)
 
 
 def crop_image(image: PIL.Image.Image, rectangle: Rectangle) -> PIL.Image.Image:
+    """Crop an image to a given rectangle.
+
+    Parameters
+    ----------
+    image
+        The original image
+
+    rectangle
+        The rectangle delimiting the cropping area
+
+    Returns
+    -------
+    PIL.Image.Image
+        The cropped image.
     """
-    """
-    pass
+    width, height = image.size
+    logger.info(f'Cropping image {width} x {height} -> {rectangle.width} x {rectangle.height}...')
+    return image.crop(rectangle.bounding_box())
 
 
 def autocrop_image(image: PIL.Image.Image) -> PIL.Image.Image:

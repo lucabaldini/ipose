@@ -60,8 +60,14 @@ def test_face_recognition():
     file_path = IPOSE_TEST_DATA / 'mona_lisa.webp'
     rects = run_face_recognition(file_path, min_neighbors=2, min_fractional_size=0.15)
 
-def test_crop_to_face():
+def test_crop_to_face(interactive=False):
     """Test the actual face crop.
     """
-    file_path = IPOSE_TEST_DATA / 'mona_lisa.webp'
-    image = crop_to_face(file_path, pad_kwargs=dict(horizontal_fractional_padding=0.25))
+    crop_to_face(IPOSE_TEST_DATA / 'mona_lisa.png', interactive=interactive)
+    crop_to_face(IPOSE_TEST_DATA / 'mona_lisa_skinny.png', interactive=interactive)
+    crop_to_face(IPOSE_TEST_DATA / 'mona_lisa_fat.png', interactive=interactive)
+
+
+
+if __name__ == '__main__':
+    test_crop_to_face(interactive=True)
