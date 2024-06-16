@@ -27,6 +27,7 @@ import cv2
 import numpy as np
 import PIL.Image
 import PIL.ImageDraw
+import PIL.ImageOps
 
 from ipose import logger
 
@@ -580,8 +581,31 @@ def pad_image(image: PIL.Image.Image, aspect_ratio: float) -> PIL.Image.Image:
     pass
 
 
+def elliptical_mask(image: PIL.Image.Image) -> PIL.Image.Image:
+    """Create an elliptical mask for a given image.
+
+    This is shamelessly borrowed from https://stackoverflow.com/questions/890051
+
+    Parameters
+    ----------
+    image
+        The input image.
+
+    Returns
+    -------
+    PIL.Image.Image
+        The mask.
+    """
+    width, height = image.size
+    # Here L is 8-bit pixels, grayscale, see
+    # https://pillow.readthedocs.io/en/stable/handbook/concepts.html#concept-modes
+    mask = PIL.Image.new('L', (width, height), 0)
+    PIL.ImageDraw.Draw(mask).ellipse((0, 0, width - 1, height - 1), fill=255, width=0)
+    return mask
+
+
 def crop_to_face(file_path: str | pathlib.Path, size: int = 100, reco_kwargs: dict = None,
-    pad_kwargs: dict = None, interactive: bool = False) -> PIL.Image.Image:
+    pad_kwargs: dict = None, circular_mask: bool = True, interactive: bool = False) -> PIL.Image.Image:
     """Crop a given image to face.
 
     This is running a face recognition round using the opencv facilities, padding
@@ -628,6 +652,8 @@ def crop_to_face(file_path: str | pathlib.Path, size: int = 100, reco_kwargs: di
     pad_rect = rect.pad_face(**pad_kwargs)
     fit_rect = pad_rect.fit_to_image(image)
     if interactive:
+        # This is tricky, as the stuff we draw seems to be sticking around
+        # even after the resize, which supposidly is making a copy...
         logger.debug(f'Original bounding box: {rect.bounding_box()}')
         logger.debug(f'Padded bounding box: {pad_rect.bounding_box()}')
         draw = PIL.ImageDraw.Draw(image)
@@ -637,4 +663,7 @@ def crop_to_face(file_path: str | pathlib.Path, size: int = 100, reco_kwargs: di
         image.show()
     box = fit_rect.bounding_box()
     logger.info(f'Target face bounding box: {box}')
-    return resize_image(image, size, size, box=box)
+    image = resize_image(image, size, size, box=box)
+    if circular_mask:
+        image.putalpha(elliptical_mask(image))
+    return image
