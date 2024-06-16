@@ -240,8 +240,7 @@ class Rectangle:
         return Rectangle(self.x0 - left, self.y0 - top, self.width + right + left,
             self.height + top + bottom)
 
-    def pad_face(self, horizontal_fractional_padding: float = 0.5,
-        top_scale_factor: float = 1.25) -> Rectangle:
+    def pad_face(self, horizontal_padding: float = 0.5, top_scale_factor: float = 1.25) -> Rectangle:
         """Specialized function for padding a rectangle given by :meth:`run_face_recognition`.
 
         This is essentially adding a horizontal padding given by the first argument
@@ -255,7 +254,7 @@ class Rectangle:
 
         Parameters
         ----------
-        horizontal_fractional_padding
+        horizontal_padding
             The horizontal padding, on either side, in units of the equivalent ]
             square side of the rectangle.
 
@@ -267,7 +266,7 @@ class Rectangle:
         Rectangle
             A new Rectangle object, padded accordingly.
         """
-        right = round(horizontal_fractional_padding * self.equivalent_square_side())
+        right = round(horizontal_padding * self.equivalent_square_side())
         top = round(top_scale_factor * right)
         bottom = 2 * right - top
         return self.pad(top, right, bottom)
@@ -347,7 +346,7 @@ class Rectangle:
 
 
 def run_face_recognition(file_path: str | pathlib.Path, scale_factor: float = 1.1,
-    min_neighbors: int = 2, min_fractional_size: float = 0.15) -> list[Rectangle]:
+    min_neighbors: int = 2, min_size: float = 0.15) -> list[Rectangle]:
     """Minimal wrapper around the standard opencv face recognition, see, e.g,
     https://www.datacamp.com/tutorial/face-detection-python-opencv
 
@@ -390,7 +389,7 @@ def run_face_recognition(file_path: str | pathlib.Path, scale_factor: float = 1.
         have to retain it (passed along verbatim as ``minNeighbors`` to the
         ``detectMultiScale`` call).
 
-    min_fractional_size
+    min_size
         Minimum possible fractional object size. Objects smaller than that are ignored.
         This is converted internally to an actual size in pixels, corresponding
         to a square whose side is the geometric mean of the original width and height,
@@ -410,8 +409,8 @@ def run_face_recognition(file_path: str | pathlib.Path, scale_factor: float = 1.
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # Calculate the minimum size of the output rectangle as that of a square whose
     # side is the geometric mean of the original width and height, multiplied by
-    # the min_fractional_size input parameter.
-    side = Rectangle.rounded_geometric_mean(*image.shape, scale=min_fractional_size)
+    # the min_size input parameter.
+    side = Rectangle.rounded_geometric_mean(*image.shape, scale=min_size)
     min_size = (side, side)
     logger.debug(f'Minimum rectangle size set to {min_size}.')
     # Run the actual face-detection code.
