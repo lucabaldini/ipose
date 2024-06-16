@@ -29,6 +29,9 @@ def test_rectangle_base():
     # Is a given rectangle equal to itself?
     assert rect == rect.copy()
     assert rect.bounding_box() == (10, 20, 110, 120)
+    assert Rectangle.square_from_size(400, 400) == Rectangle(0, 0, 400, 400)
+    assert Rectangle.square_from_size(600, 400) == Rectangle(100, 0, 400, 400)
+    assert Rectangle.square_from_size(400, 600) == Rectangle(0, 100, 400, 400)
 
 def test_rectangle_padding():
     """Test the rectangle padding code.

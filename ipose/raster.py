@@ -87,6 +87,47 @@ class Rectangle:
         """
         return Rectangle(self.x0, self.y0, self.width, self.height)
 
+    @classmethod
+    def square_from_size(cls, width: int, height: int) -> Rectangle:
+        """Return the largest square rectangle fitting within a given size.
+
+        Parameters
+        ----------
+        width
+            The target width.
+
+        height
+            The target height.
+
+        Returns
+        -------
+        Rectangle
+            The largest fitting square.
+        """
+        if width == height:
+            return Rectangle(0, 0, width, height)
+        side = min(width, height)
+        delta = round(0.5 * (width - height))
+        if delta > 0:
+            return Rectangle(delta, 0, side, side)
+        return Rectangle(0, -delta, side, side)
+
+    @classmethod
+    def square_from_image(cls, image: PIL.Image.Image) -> Rectangle:
+        """Return the largest square rectangle fitting within a given image.
+
+        Parameters
+        ----------
+        image
+            The target image.
+
+        Returns
+        -------
+        Rectangle
+            The largest fitting square.
+        """
+        return cls.square_from_size(*image.size)
+
     def is_square(self) -> bool:
         """Return True if the rectangle is square.
 
@@ -577,9 +618,8 @@ def crop_to_face(file_path: str | pathlib.Path, size: int = 100, reco_kwargs: di
     num_candidates = len(candidates)
     image = open_image(file_path)
     if num_candidates == 0:
-        logger.warning(f'No face candidate found in {file_path}, writing entire image...')
-        save_image(image, output_file_path)
-        return
+        logger.warning(f'No face candidate found in {file_path}, taking largest square...')
+        candidates.append(Rectangle.square_from_image(image))
     if num_candidates > 1:
         logger.warning(f'Multiple face candidates found in {file_path}, taking largest...')
     # Go on with the best face candidate. Note that we cache the rectangles at all
