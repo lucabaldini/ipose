@@ -18,4 +18,5 @@ List of modules
    :maxdepth: 2
    :caption: Core
 
+   pipeline
    raster
