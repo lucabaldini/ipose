@@ -242,21 +242,36 @@ class Rectangle:
         logger.debug(f'Padding {self} -> {rectangle}...')
         return rectangle
 
-    def pad_face(self, horizontal_padding: float = 0.5,
-        top_scale_factor: float = 1.25) -> Rectangle:
-        """Specialized function for padding a rectangle given by :meth:`run_face_recognition`.
+    def smaller_than(self, width: int, height: int) -> bool:
+        """Return whether the rectangle dimensions are smaller than a given
+        width x height area.
+        """
+        return self.width <= width and self.height <= height
 
-        This is essentially adding a horizontal padding given by the first argument
-        and asymmetric top-bottom padding governed by the second. The rationale behind
-        this is that opencv tends to crop the hair, and we generally want a padding
-        on the top that is slightly larger than that on the bottom.
+    def shift_to_fit(self, width: int, height: int) -> Rectangle:
+        """Shift the origin of the rectangle to make it fully contained in a given
+        width x height area.
+        """
+        if not self.smaller_than(width, height):
+            raise RuntimeError(f'{self} does not fit into {width} x {height}')
+        rectangle = self.copy()
+        rectangle.x0 = np.clip(rectangle.x0, 0, width - rectangle.width)
+        rectangle.y0 = np.clip(rectangle.y0, 0, height - rectangle.height)
+        return rectangle
 
-        Note that this function guarantees that the sum of the horizontal and vertical
-        paddings are the same---that is, if we start from a square rectangle, we do
-        end up with a square rectangle.
+    def setup_for_face_cropping(self, image_width: int, image_height: int,
+        horizontal_padding: float = 0.5, top_scale_factor: float = 1.25) -> Rectangle:
+        """Massage a given rectangle to make it suitable for cropping a face
+        out of an image.
 
         Parameters
         ----------
+        image_width
+            The with of the original image.
+
+        image_height
+            The height of the original image.
+
         horizontal_padding
             The horizontal padding, on either side, in units of the equivalent ]
             square side of the rectangle.
@@ -267,65 +282,38 @@ class Rectangle:
         Returns
         -------
         Rectangle
-            A new Rectangle object, padded accordingly.
+            A new Rectangle object, ready for cropping.
         """
-        right = round(horizontal_padding * self.equivalent_square_side())
+        # We assume that the rectangle out of opencv is square.
+        if not self.is_square:
+            raise RuntimeError(f'Face candidate {self} is not square')
+        # First of all, pad the rectangle on the four sides as intended.
+        logger.info(f'Applying standard padding to rectangle...')
+        # Remember that the horizontal padding is referred to the size of the
+        # rectangle returned by the face-detection stage...
+        right = round(horizontal_padding * self.width)
+        # ... the top padding is determined by the corresponding scale factor...
         top = round(top_scale_factor * right)
+        # ... and we put on the bottom whatever is left.
         bottom = 2 * right - top
-        return self.pad(top, right, bottom)
-
-    def fit_to_size(self, max_width: int, max_height: int) -> Rectangle:
-        """Fit a given rectangle to a given size.
-
-        This is notably used in the last step of face-cropping, where we have to
-        make sure that the rectangle containing the face, after padding, is contained
-        in the original picture---and do something if it's not. Also note that
-        if the starting rectange is square we make sure that the final rectangle
-        is square as well, which is the intended behavior when cropping a face.
-
-        Parameters
-        ----------
-        max_width
-            The width of the target canvas image in pixels.
-
-        max_height
-            The height of the target canvas image in pixels.
-
-        Returns
-        -------
-        Rectangle
-            A new Rectangle object fitting into the target canvas.
-        """
-        logger.debug(f'Fitting {self} to {max_width} x {max_height}...')
-        # Our baseline rectangle is just limited to the image dimensions, and
-        # shifted when necessary to fit into the image itself.
-        width = min(self.width, max_width)
-        height = min(self.height, max_height)
-        x0 = np.clip(self.x0, 0, max_width - width)
-        y0 = np.clip(self.y0, 0, max_height - height)
-        rect = Rectangle(x0, y0, width, height)
-        # And if the original rectangle is a square (e.g., when cropping a face)
-        # we might have to do some lifting in order to ensure that the output
-        # rectangle is also a square.
-        if self.is_square() and not rect.is_square():
-            logger.debug(f'{rect} is not square...')
-            # Cache the non-squareness of the rectangle before we modify it.
-            delta = round(0.5 * (rect.width - rect.height))
-            # Trimming the rectangle to a square is easy...
-            side = min(rect.width, rect.height)
-            rect.width = side
-            rect.height = side
-            # Now this is the trickiest part, where it is easiest to to go wrong.
-            # If delta is positive, then the width of the rectangle is greater than
-            # its height, i.e., the rectangle is fat, and we have to adjust x0.
-            if delta > 0:
-                rect.x0 = max(self.x0 , 0) + delta
-            # If delta is negative, then the width of the rectangle is smaller than
-            # its height, i.e., the rectangle is fat, and we have to adjust y0.
-            else:
-                rect.y0 = max(self.y0, 0) - delta
-            logger.debug(f'...and now post-processed to {rect}.')
-        return rect
+        rectangle = self.pad(top, right, bottom)
+        # If the padded rectangle is fitting into the original image, then all we
+        # have to do is to make sure that the origin is such that the rectangle
+        # itself is actully fully contained in the image---and apply a simple shift
+        # if that is not the case.
+        if rectangle.smaller_than(image_width, image_height):
+            return rectangle.shift_to_fit(image_width, image_height)
+        # And here comes all the fun, as we do have to do our best to get a good
+        # face crop when the embedding image is not as large as we would have wanted.
+        # After some trial and error I think the best we can do, here, is to
+        # pick the largest square fitting into the original image and centered
+        # on the rectangle returned by opencv.
+        logger.info(f'Padded rectangle too large for the {image_width} x {image_height} image...')
+        rectangle.width = rectangle.height = min(image_width, image_height)
+        rectangle.x0 = self.x0 - (rectangle.width - self.width) // 2
+        rectangle.y0 = self.y0 - (rectangle.height - self.height) // 2
+        rectangle = rectangle.shift_to_fit(image_width, image_height)
+        return rectangle
 
     def __eq__(self, other) -> bool:
         """Overloaded equality operator.

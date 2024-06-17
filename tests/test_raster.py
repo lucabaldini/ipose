@@ -42,13 +42,6 @@ def test_rectangle_padding():
     assert rect.pad(100) == Rectangle(0, 0, 400, 400)
     assert rect.pad(100, 200) == Rectangle(-100, 0, 600, 400)
 
-def test_rectangle_fitting():
-    """Test for rectangle fitting.
-    """
-    rect = Rectangle(-10, -10, 100, 100)
-    assert rect.fit_to_size(400, 200) == Rectangle(0, 0, 100, 100)
-    assert rect.fit_to_size(100, 100) == Rectangle(0, 0, 100, 100)
-
 def test_open_image():
     """Test the open_image() function in all its flavors.
     """
