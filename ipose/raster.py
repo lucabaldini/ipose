@@ -237,10 +237,13 @@ class Rectangle:
         right = right or top
         bottom = bottom or top
         left = left or right
-        return Rectangle(self.x0 - left, self.y0 - top, self.width + right + left,
+        rectangle = Rectangle(self.x0 - left, self.y0 - top, self.width + right + left,
             self.height + top + bottom)
+        logger.debug(f'Padding {self} -> {rectangle}...')
+        return rectangle
 
-    def pad_face(self, horizontal_padding: float = 0.5, top_scale_factor: float = 1.25) -> Rectangle:
+    def pad_face(self, horizontal_padding: float = 0.5,
+        top_scale_factor: float = 1.25) -> Rectangle:
         """Specialized function for padding a rectangle given by :meth:`run_face_recognition`.
 
         This is essentially adding a horizontal padding given by the first argument
@@ -293,6 +296,7 @@ class Rectangle:
         Rectangle
             A new Rectangle object fitting into the target canvas.
         """
+        logger.debug(f'Fitting {self} to {max_width} x {max_height}...')
         # Our baseline rectangle is just limited to the image dimensions, and
         # shifted when necessary to fit into the image itself.
         width = min(self.width, max_width)
@@ -313,7 +317,7 @@ class Rectangle:
             side = min(rect.width, rect.height)
             rect.width = side
             rect.height = side
-            logger.debug(f'Post-processed to {rect}.')
+            logger.debug(f'...and now post-processed to {rect}.')
         return rect
 
     def fit_to_image(self, image: PIL.Image.Image) -> Rectangle:
@@ -543,7 +547,8 @@ def resize_image(image: PIL.Image.Image, width: int = None, height: int = None,
     elif width is None:
         width = round(height / original_height * original_width)
     # And now we are good to go.
-    logger.info(f'Resizing image {original_width} x {original_height} -> {width} x {height}...')
+    logger.info(f'Resizing image {original_width} x {original_height} -> {box} '
+        f'-> {width} x {height}...')
     return image.resize((width, height), resample, box, reducing_gap)
 
 
@@ -568,16 +573,16 @@ def crop_image(image: PIL.Image.Image, rectangle: Rectangle) -> PIL.Image.Image:
     return image.crop(rectangle.bounding_box())
 
 
-def autocrop_image(image: PIL.Image.Image) -> PIL.Image.Image:
-    """
-    """
-    pass
-
-
-def pad_image(image: PIL.Image.Image, aspect_ratio: float) -> PIL.Image.Image:
-    """
-    """
-    pass
+# def autocrop_image(image: PIL.Image.Image) -> PIL.Image.Image:
+#     """
+#     """
+#     pass
+#
+#
+# def pad_image(image: PIL.Image.Image, aspect_ratio: float) -> PIL.Image.Image:
+#     """
+#     """
+#     pass
 
 
 def elliptical_mask(image: PIL.Image.Image) -> PIL.Image.Image:
