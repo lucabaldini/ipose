@@ -16,7 +16,7 @@
 
 
 from ipose import logger, IPOSE_TEST_DATA, IPOSE_DATA
-from ipose.raster import Rectangle, open_image, save_image, run_face_recognition, crop_to_face
+from ipose.raster import Rectangle, open_image, save_image, run_face_recognition
 
 
 
@@ -60,17 +60,7 @@ def test_face_recognition():
     """Test the face-detecttion algorithm.
     """
     file_path = IPOSE_TEST_DATA / 'mona_lisa.webp'
-    rects = run_face_recognition(file_path, min_neighbors=2, min_fractional_size=0.15)
-
-def test_crop_to_face(interactive=False):
-    """Test the actual face crop.
-    """
-    image = crop_to_face(IPOSE_TEST_DATA / 'mona_lisa.png', interactive=interactive)
-    save_image(image, IPOSE_DATA / 'mona_lisa_cropped.png')
-    image = crop_to_face(IPOSE_TEST_DATA / 'mona_lisa_skinny.png', interactive=interactive)
-    save_image(image, IPOSE_DATA / 'mona_lisa_skinny_cropped.png')
-    image = crop_to_face(IPOSE_TEST_DATA / 'mona_lisa_fat.png', interactive=interactive)
-    save_image(image, IPOSE_DATA / 'mona_lisa_fat_cropped.png')
+    rects = run_face_recognition(file_path, min_neighbors=2, min_size=0.15)
 
 
 
