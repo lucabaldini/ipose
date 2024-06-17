@@ -43,6 +43,11 @@ class Rectangle:
 
     """Small container class representing a rectangle.
 
+    Following the opencv conventions, a rectangle is identified by the two coordinates
+    of the top-left corner, its with, and its height. The x coordinate is running
+    from left to right, and the y coordinate is running from top to bottom, with
+    the (0, 0) pixel placed at the top-left corner.
+
     Parameters
     ----------
     x0
@@ -55,7 +60,8 @@ class Rectangle:
         The width of the rectangle.
 
     height
-        The height of the rectangle.
+        The height of the rectangle; if None, this is set to be equal to the width
+        (i.e., by default the rectangle is a square).
     """
 
     # pylint: disable=invalid-name
@@ -79,7 +85,7 @@ class Rectangle:
                 raise RuntimeError(f'Wrong type for {self}')
 
     def copy(self) -> Rectangle:
-        """Return an identical copy of the rectangle.
+        """Create an identical copy of the rectangle.
 
         Returns
         -------
@@ -90,7 +96,8 @@ class Rectangle:
 
     @classmethod
     def square_from_size(cls, width: int, height: int) -> Rectangle:
-        """Return the largest square rectangle fitting within a given size.
+        """Create a new object representing the largest square fitting within a
+        given size, and centered within the corresponding area.
 
         Parameters
         ----------
@@ -103,7 +110,7 @@ class Rectangle:
         Returns
         -------
         Rectangle
-            The largest fitting square.
+            The largest centered, fitting square.
         """
         if width == height:
             return Rectangle(0, 0, width, height)
@@ -112,22 +119,6 @@ class Rectangle:
         if delta > 0:
             return Rectangle(delta, 0, side, side)
         return Rectangle(0, -delta, side, side)
-
-    @classmethod
-    def square_from_image(cls, image: PIL.Image.Image) -> Rectangle:
-        """Return the largest square rectangle fitting within a given image.
-
-        Parameters
-        ----------
-        image
-            The target image.
-
-        Returns
-        -------
-        Rectangle
-            The largest fitting square.
-        """
-        return cls.square_from_size(*image.size)
 
     def is_square(self) -> bool:
         """Return True if the rectangle is square.
@@ -145,7 +136,7 @@ class Rectangle:
         Returns
         -------
         int
-            The area of the rectangle.
+            The area of the rectangle in pixel squared.
         """
         return self.width * self.height
 
@@ -159,16 +150,6 @@ class Rectangle:
             The four-element tuple corresponding to the rectangle bounding box.
         """
         return (self.x0, self.y0, self.x0 + self.width, self.y0 + self.width)
-
-    def center(self) -> tuple[float, float]:
-        """Returns the coordinates of the center of the rectangle.
-
-        Returns
-        -------
-        tuple[float, float]
-            The coordinates of the center of the rectangle.
-        """
-        return (self.x0 + self.width / 2., self.y0 + self.height / 2.)
 
     @staticmethod
     def rounded_geometric_mean(*values: float, scale: float = None) -> int:
@@ -208,7 +189,8 @@ class Rectangle:
         return self.rounded_geometric_mean(self.width, self.height)
 
     def pad(self, top: int, right: int = None, bottom: int = None, left: int = None) -> Rectangle:
-        """Pad the rectangle according to the input parameters.
+        """Create a new rectangle padding the original one according to the input
+        parameters.
 
         Note that the order of the arguments is designed to make it easy for the
         user to specify a single padding on four sides (passing only one argument)
@@ -242,17 +224,47 @@ class Rectangle:
         logger.debug(f'Padding {self} -> {rectangle}...')
         return rectangle
 
-    def smaller_than(self, width: int, height: int) -> bool:
-        """Return whether the rectangle dimensions are smaller than a given
-        width x height area.
+    def fits_within(self, width: int, height: int) -> bool:
+        """Return whether the rectangle fits within a given area, possibly after
+        a shift.
+
+        Parameters
+        ----------
+        width
+            The width of the target area.
+
+        height
+            The height of the target area.
+
+        Returns
+        -------
+        bool
+            True if the Rectangle fits.
         """
         return self.width <= width and self.height <= height
 
     def shift_to_fit(self, width: int, height: int) -> Rectangle:
-        """Shift the origin of the rectangle to make it fully contained in a given
-        width x height area.
+        """Create a new Rectangle object by shifting the origin of the original
+        one to make it fully contained in a given area, i.e. within the
+        (0, 0, width, height) bounding box.
+
+        Note this raises a RuntimeError if the rectangle is too large for the target
+        area.
+
+        Parameters
+        ----------
+        width
+            The width of the target area.
+
+        height
+            The height of the target area.
+
+        Returns
+        -------
+        Rectangle
+            A new, shifted rectangle.
         """
-        if not self.smaller_than(width, height):
+        if not self.fits_within(width, height):
             raise RuntimeError(f'{self} does not fit into {width} x {height}')
         rectangle = self.copy()
         rectangle.x0 = np.clip(rectangle.x0, 0, width - rectangle.width)
@@ -263,6 +275,21 @@ class Rectangle:
         horizontal_padding: float = 0.5, top_scale_factor: float = 1.25) -> Rectangle:
         """Massage a given rectangle to make it suitable for cropping a face
         out of an image.
+
+        This is used to transform the candidate rectangle containing the face returned
+        by opencv into a proper bounding box to be cropped off the original image,
+        which in general we would like to be significantly larger than the face-detection
+        output. The process takes place in two steps: first we pad the original rectangle
+        based on the input parameters, and then we make the necessary modifications,
+        if any, to make the final rectangle fit within the original image. The rule
+        of thumb is that if the overall dimensions of the rectangle fit in the original
+        image, we keep the width and the height of the rectangle and apply the smallest
+        possible shift to the origin so that the cropping area does not extend outside
+        the image. When the padded rectangle is too big for the original image, instead,
+        we resort to the largest square that can be embedded in the image itself,
+        and is approximately centered on the initial rectangle. (The comments in
+        code might provide the user a firmer grasp on what is actually happening
+        behind the scenes.)
 
         Parameters
         ----------
@@ -288,7 +315,7 @@ class Rectangle:
         if not self.is_square:
             raise RuntimeError(f'Face candidate {self} is not square')
         # First of all, pad the rectangle on the four sides as intended.
-        logger.info(f'Applying standard padding to rectangle...')
+        logger.info('Running rectangle-padding step to identify crop area...')
         # Remember that the horizontal padding is referred to the size of the
         # rectangle returned by the face-detection stage...
         right = round(horizontal_padding * self.width)
@@ -301,7 +328,7 @@ class Rectangle:
         # have to do is to make sure that the origin is such that the rectangle
         # itself is actully fully contained in the image---and apply a simple shift
         # if that is not the case.
-        if rectangle.smaller_than(image_width, image_height):
+        if rectangle.fits_within(image_width, image_height):
             return rectangle.shift_to_fit(image_width, image_height)
         # And here comes all the fun, as we do have to do our best to get a good
         # face crop when the embedding image is not as large as we would have wanted.
@@ -313,6 +340,7 @@ class Rectangle:
         rectangle.x0 = self.x0 - (rectangle.width - self.width) // 2
         rectangle.y0 = self.y0 - (rectangle.height - self.height) // 2
         rectangle = rectangle.shift_to_fit(image_width, image_height)
+        logger.debug(f'Cropping area refined to {rectangle}.')
         return rectangle
 
     def __eq__(self, other) -> bool:
@@ -555,7 +583,7 @@ def crop_image(image: PIL.Image.Image, rectangle: Rectangle) -> PIL.Image.Image:
         The cropped image.
     """
     width, height = image.size
-    logger.info(f'Cropping image {width} x {height} -> {rectangle.width} x {rectangle.height}...')
+    logger.info(f'Cropping image {width} x {height} -> {rectangle}...')
     return image.crop(rectangle.bounding_box())
 
 

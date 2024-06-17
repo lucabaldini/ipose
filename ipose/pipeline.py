@@ -55,7 +55,7 @@ def ipose_face_crop(file_path: str | pathlib.Path, **kwargs) -> None:
     image = open_image(file_path)
     if num_candidates == 0:
          logger.warning(f'No face candidate found in {file_path}, picking generic square...')
-         candidates.append(Rectangle.square_from_image(image))
+         candidates.append(Rectangle.square_from_size(*image.size))
     if num_candidates > 1:
          logger.warning(f'Multiple face candidates found in {file_path}, picking largest...')
     # Go on with the best face candidate.
