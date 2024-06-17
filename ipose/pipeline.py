@@ -24,7 +24,20 @@ from ipose.raster import Rectangle, run_face_recognition, open_image, resize_ima
 
 
 def _filter_kwargs(*keys, **kwargs):
-    """
+    """Small convenience function for filtering keywors arguments and dispatching
+    them to different function calls.
+
+    Parameters
+    ----------
+    keys
+        The desired keys.
+
+    kwargs
+        The complete dictionary of keyword arguments.
+
+    Returns
+    -------
+        A filtered dict of keyword arguments.
     """
     return {key: value for key, value in kwargs.items() if key in keys}
 

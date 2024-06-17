@@ -22,7 +22,7 @@ from ipose.pipeline import ipose_face_crop
 
 
 if __name__ == '__main__':
-    
+
     parser = argparse.ArgumentParser()
     parser.add_argument('files', nargs='+')
     group = parser.add_argument_group('Face recognition')
@@ -46,11 +46,13 @@ if __name__ == '__main__':
         help='size of the output (square) image in pixels')
     group.add_argument('--circular_mask', action='store_true', default=False,
         help='if set, a circular mask will be applied in the output image')
-    group = parser.add_argument_group('Output file(s)')
+    group = parser.add_argument_group('Output')
     group.add_argument('--output-folder', type=str, default=IPOSE_DATA,
         help='path to the folder for the output files')
     group.add_argument('--suffix', type=str, default=None,
         help='optional suffix for the output files')
+    group.add_argument('--interactive', action='store_true', default=False,
+        help='run in interactive mode')
 
     kwargs = vars(parser.parse_args())
     for file_path in kwargs.pop('files'):
