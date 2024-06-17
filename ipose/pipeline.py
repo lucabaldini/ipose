@@ -62,24 +62,24 @@ def ipose_face_crop(file_path: str | pathlib.Path, **kwargs) -> None:
     _kwargs = _filter_kwargs('horizontal_padding', 'top-scale-factor')
     pad_rect = rect.pad_face(**_kwargs)
     fit_rect = pad_rect.fit_to_image(image)
-    # if interactive:
-    #     # This is tricky, as the stuff we draw seems to be sticking around
-    #     # even after the resize, which supposidly is making a copy...
-    #     logger.debug(f'Original bounding box: {rect.bounding_box()}')
-    #     logger.debug(f'Padded bounding box: {pad_rect.bounding_box()}')
-    #     draw = PIL.ImageDraw.Draw(image)
-    #     draw.rectangle(rect.bounding_box(), outline='white', width=2)
-    #     draw.rectangle(pad_rect.bounding_box(), outline='yellow', width=2)
-    #     draw.rectangle(fit_rect.bounding_box(), outline='red', width=2)
-    #     image.show()
+    if kwargs.get('interactive', False):
+         # This is tricky, as the stuff we draw seems to be sticking around
+         # even after the resize, which supposidly is making a copy...
+         logger.debug(f'Original bounding box: {rect.bounding_box()}')
+         logger.debug(f'Padded bounding box: {pad_rect.bounding_box()}')
+         draw = PIL.ImageDraw.Draw(image)
+         draw.rectangle(rect.bounding_box(), outline='white', width=2)
+         draw.rectangle(pad_rect.bounding_box(), outline='yellow', width=2)
+         draw.rectangle(fit_rect.bounding_box(), outline='red', width=2)
+         image.show()
     box = fit_rect.bounding_box()
     logger.info(f'Target face bounding box: {box}')
-    size = kwargs['output_size']
+    size = kwargs.get('output_size', 100)
     image = resize_image(image, size, size, box=box)
-    if kwargs['circular_mask']:
+    if kwargs.get('circular_mask', False):
          image.putalpha(elliptical_mask(image))
     file_name = file_path.stem
-    suffix = kwargs['suffix']
+    suffix = kwargs.get('suffix')
     if suffix is not None:
         file_name = f'{file_name}_{suffix}'
     file_name = f'{file_name}.png'
