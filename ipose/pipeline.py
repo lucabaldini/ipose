@@ -18,6 +18,8 @@
 
 import pathlib
 
+import PIL.ImageDraw
+
 from ipose import logger, IPOSE_DATA
 from ipose.raster import Rectangle, run_face_recognition, open_image, resize_image,\
     elliptical_mask, save_image
@@ -47,19 +49,19 @@ def ipose_face_crop(file_path: str | pathlib.Path, **kwargs) -> None:
     """
     if not isinstance(file_path, pathlib.Path):
         file_path = pathlib.Path(file_path)
-    _kwargs = _filter_kwargs('scale_factor', 'min_neighbors', 'min_size')
+    _kwargs = _filter_kwargs('scale_factor', 'min_neighbors', 'min_size', **kwargs)
     candidates = run_face_recognition(file_path, **_kwargs)
     num_candidates = len(candidates)
     image = open_image(file_path)
     if num_candidates == 0:
-         logger.warning(f'No face candidate found in {file_path}, taking largest square...')
+         logger.warning(f'No face candidate found in {file_path}, picking generic square...')
          candidates.append(Rectangle.square_from_image(image))
     if num_candidates > 1:
-         logger.warning(f'Multiple face candidates found in {file_path}, taking largest...')
+         logger.warning(f'Multiple face candidates found in {file_path}, picking largest...')
     # Go on with the best face candidate. Note that we cache the rectangles at all
     # the intermediate steps for debugging purposes, in case we need them...
     rect = candidates[-1]
-    _kwargs = _filter_kwargs('horizontal_padding', 'top-scale-factor')
+    _kwargs = _filter_kwargs('horizontal_padding', 'top-scale-factor', **kwargs)
     pad_rect = rect.pad_face(**_kwargs)
     fit_rect = pad_rect.fit_to_image(image)
     if kwargs.get('interactive', False):

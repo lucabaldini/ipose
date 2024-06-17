@@ -37,10 +37,10 @@ group.add_argument('--min-neighbors', type=int, default=2,
     help='minNeighbors parameter for the opencv detectMultiScale() call, '
          'determining how many neighbors each candidate rectangle should '
          'have to retain it')
-group.add_argument('--min-size', type=float, default=0.1,
+group.add_argument('--min-size', type=float, default=0.175,
     help='minimum rectangle size as a fraction of the effective size of the original image')
 group = parser.add_argument_group('appearance')
-group.add_argument('--horizontal_padding', type=float, default=0.5,
+group.add_argument('--horizontal_padding', type=float, default=0.4,
     help='fractional padding in the horizontal direction for the best rectangle '
          'identified by the face-recognition step')
 group.add_argument('--top-scale-factor', type=float, default=1.25,

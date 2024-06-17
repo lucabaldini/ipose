@@ -309,14 +309,21 @@ class Rectangle:
         # rectangle is also a square.
         if self.is_square() and not rect.is_square():
             logger.debug(f'{rect} is not square...')
+            # Cache the non-squareness of the rectangle before we modify it.
             delta = round(0.5 * (rect.width - rect.height))
-            if delta > 0:
-                rect.x0 = max(self.x0 + delta, 0)
-            else:
-                rect.y0 = max(self.y0 + delta, 0)
+            # Trimming the rectangle to a square is easy...
             side = min(rect.width, rect.height)
             rect.width = side
             rect.height = side
+            # Now this is the trickiest part, where it is easiest to to go wrong.
+            # If delta is positive, then the width of the rectangle is greater than
+            # its height, i.e., the rectangle is fat, and we have to adjust x0.
+            if delta > 0:
+                rect.x0 = max(self.x0 , 0) + delta
+            # If delta is negative, then the width of the rectangle is smaller than
+            # its height, i.e., the rectangle is fat, and we have to adjust y0.
+            else:
+                rect.y0 = max(self.y0, 0) - delta
             logger.debug(f'...and now post-processed to {rect}.')
         return rect
 
@@ -404,11 +411,14 @@ def run_face_recognition(file_path: str | pathlib.Path, scale_factor: float = 1.
     list[Rectangle]
         The list of :class:`Rectangle` objects containing the face candidates.
     """
+    if not pathlib.Path.is_file(file_path):
+        raise RuntimeError(f'{file_path} does not exist or is not a regular file')
     # pylint: disable=no-member
     # Create a CascadeClassifier object with the proper model file (and the file
     # path must be a string, not a Path, here).
     classifier = cv2.CascadeClassifier(f'{_DEFAULT_FACE_DETECTION_MODEL_PATH}')
-    logger.info(f'Running face detection on {file_path}...')
+    settings = dict(scale_factor=scale_factor, min_neighbors=min_neighbors, min_size=min_size)
+    logger.info(f'Running face detection on {file_path} with {settings}...')
     image = cv2.imread(f'{file_path}')
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # Calculate the minimum size of the output rectangle as that of a square whose
@@ -446,7 +456,10 @@ def open_image(file_path: str | pathlib.Path) -> PIL.Image.Image:
     """
     logger.info(f'Loading image data from {file_path}...')
     with PIL.Image.open(file_path) as image:
-        # Parse the original image size and orientation.
+        # Parse the original image size and orientation. Note that we want to
+        # put a call to load() here, otherwise we will get into trouble downstream,
+        # depending on the file format.
+        image.load()
         width, height = image.size
         orientation = image.getexif().get(_EXIF_ORIENTATION_TAG, None)
         logger.debug(f'Original size: {width} x {height}, orientation: {orientation}')
