@@ -327,21 +327,6 @@ class Rectangle:
             logger.debug(f'...and now post-processed to {rect}.')
         return rect
 
-    def fit_to_image(self, image: PIL.Image.Image) -> Rectangle:
-        """Fit a given rectangle to a given image.
-
-        Parameters
-        ----------
-        image
-            The target image.
-
-        Returns
-        -------
-        Rectangle
-            A new Rectangle object fitting into the target canvas.
-        """
-        return self.fit_to_size(*image.size)
-
     def __eq__(self, other) -> bool:
         """Overloaded equality operator.
         """

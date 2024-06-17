@@ -63,7 +63,7 @@ def ipose_face_crop(file_path: str | pathlib.Path, **kwargs) -> None:
     rect = candidates[-1]
     _kwargs = _filter_kwargs('horizontal_padding', 'top-scale-factor', **kwargs)
     pad_rect = rect.pad_face(**_kwargs)
-    fit_rect = pad_rect.fit_to_image(image)
+    fit_rect = pad_rect.fit_to_size(*image.size)
     if kwargs.get('interactive', False):
          # This is tricky, as the stuff we draw seems to be sticking around
          # even after the resize, which supposidly is making a copy...
