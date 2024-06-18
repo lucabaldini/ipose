@@ -18,7 +18,7 @@
 import argparse
 
 from ipose import IPOSE_DATA
-from ipose.pipeline import ipose_face_crop
+from ipose.pipe import ipose_face_crop
 
 
 __description__ = \
