@@ -41,7 +41,6 @@ _OPTION_DICT = {
     '--circular-mask': dict(action='store_true', default=False,
         help='if set, a circular mask will be applied in the output image'),
 
-    # group = parser.add_argument_group('output')
     '--output-folder': dict(type=str, default=IPOSE_DATA,
         help='path to the folder for the output files'),
     '--suffix': dict(type=str, default=None,
@@ -50,34 +49,65 @@ _OPTION_DICT = {
         help='run in interactive mode')
 }
 
+
+
 def default_value(key: str):
     """
     """
     return _OPTION_DICT[key]['default']
 
 
-def _add_arguments(parser, *keys: str) -> None:
-    """
-    """
-    for key in keys:
-        parser.add_argument(key, **_OPTION_DICT[key])
 
-def _add_group(parser, name: str, *keys: str):
+class _Formatter(argparse.RawDescriptionHelpFormatter, argparse.ArgumentDefaultsHelpFormatter):
+
+    """Do nothing class combining our favorite formatting for the
+    command-line options, i.e., the newlines in the descriptions are
+    preserved and, at the same time, the argument defaults are printed
+    out when the --help options is passed.
+
+    The inspiration for this is coming from one of the comments in
+    https://stackoverflow.com/questions/3853722
+    """
+
+
+
+class MainArgumentParser(argparse.ArgumentParser):
+
     """
     """
-    group = parser.add_argument_group(name)
-    _add_arguments(group, *keys)
-    return group
+
+    _DESCRIPTION = None
+    _EPILOG = None
+    _FORMATTER_CLASS = _Formatter
+    _OPTS_FACE_DETECTION = ('--scale-factor', '--min-neighbors', '--min-size')
+    _OPTS_APPEARANCE = ('--horizontal-padding', '--top-scale-factor', '--output-size', '--circular-mask')
+    _OPTS_OUTPUT = ('--output-folder', '--suffix', '--interactive')
+
+    def __init__(self) -> None:
+        """Overloaded method.
+        """
+        super().__init__(description=self._DESCRIPTION, epilog=self._EPILOG,
+            formatter_class=self._FORMATTER_CLASS)
+        self._add_group('face detection', *self._OPTS_FACE_DETECTION)
+        self._add_group('appearance', *self._OPTS_APPEARANCE)
+        self._add_group('output', *self._OPTS_OUTPUT)
+
+    @staticmethod
+    def _add_arguments_from_dict(parser, *keys: str) -> None:
+        """
+        """
+        for key in keys:
+            parser.add_argument(key, **_OPTION_DICT[key])
+
+    def _add_group(self, name: str, *keys: str):
+        """
+        """
+        group = self.add_argument_group(name)
+        self._add_arguments_from_dict(group, *keys)
+        return group
 
 
 
 if __name__ == '__main__':
-    print(_OPTION_DICT)
-    print(default_value('--scale-factor'))
-    parser = argparse.ArgumentParser()
-    _add_group(parser, 'face recognition', '--scale-factor', '--min-neighbors',
-        '--min-size')
-    _add_group(parser, 'appearance', '--horizontal-padding', '--top-scale-factor',
-        '--output-size', '--circular-mask')
-    _add_group(parser, 'output', '--output-folder', '--suffix', '--interactive')
+    parser = MainArgumentParser()
     parser.parse_args()
