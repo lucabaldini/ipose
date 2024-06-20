@@ -7,7 +7,7 @@ html:
 	cd docs; make html
 
 clean:
-	rm -rf ipose/__pycache__  tests/__pycache__ .pytest_cache 
+	rm -rf apps/__pycache__ ipose/__pycache__  tests/__pycache__ .pytest_cache
 
 cleandoc:
 	cd docs; make clean

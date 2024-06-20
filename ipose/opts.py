@@ -101,8 +101,7 @@ class MainArgumentParser(argparse.ArgumentParser):
         """
         super().__init__(description=self._DESCRIPTION, epilog=self._EPILOG,
             formatter_class=self._FORMATTER_CLASS)
-
-        subparsers = self.add_subparsers(help='sub-command help')
+        subparsers = self.add_subparsers(dest='command', required=True, help='sub-command help')
         # See https://stackoverflow.com/questions/8757338/
         subparsers._parser_class = argparse.ArgumentParser
         parser_facecrop = subparsers.add_parser('facecrop', help='crop images to face')

@@ -44,7 +44,7 @@ def _filter_kwargs(*keys, **kwargs):
     return {key: value for key, value in kwargs.items() if key in keys}
 
 
-def ipose_face_crop(file_path: str | pathlib.Path, **kwargs) -> None:
+def face_crop(file_path: str | pathlib.Path, **kwargs) -> None:
     """
     """
     if not isinstance(file_path, pathlib.Path):
