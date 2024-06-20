@@ -18,5 +18,6 @@ List of modules
    :maxdepth: 2
    :caption: Core
 
+   opts
    pipe
    raster
