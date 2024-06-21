@@ -46,6 +46,9 @@ def rasterize(file_path: str | pathlib.Path, page_number: int = 0,
 
     page_number
         The target page number.
+
+    output_width
+        The width of the output image (the aspect ratio is preserved).
     """
     document = open_document(file_path)
     logger.info(f'Rastering page {page_number}...')
