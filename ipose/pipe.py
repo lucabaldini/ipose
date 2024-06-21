@@ -83,3 +83,15 @@ def rasterize(file_path: str | pathlib.Path, **kwargs) -> None:
     """
     """
     pass
+
+
+def tile():
+    """
+    """
+    pass
+
+
+def animate():
+    """
+    """
+    pass
