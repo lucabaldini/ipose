@@ -62,11 +62,3 @@ def rasterize(file_path: str | pathlib.Path, page_number: int = 0,
     logger.debug(f'Rendering options: {kwargs}')
     image = page.render(**kwargs).to_pil()
     return image
-
-
-
-if __name__ == '__main__':
-    from ipose import IPOSE_TEST_DATA
-    file_path = IPOSE_TEST_DATA / 'sample_poster.pdf'
-    image = rasterize(file_path)
-    image.show()
