@@ -86,7 +86,7 @@ def default_value(key: str) -> typing.Any:
         The default value for a given optional argument.
     """
     try:
-        return _OPTION_DICT[key]['default']
+        return _OPTION_DICT[key.replace('_', '-')]['default']
     except KeyError as exception:
         raise KeyError(f'Unknown global option {key}') from exception
 

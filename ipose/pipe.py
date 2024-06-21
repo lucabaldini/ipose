@@ -21,11 +21,12 @@ import pathlib
 import PIL.ImageDraw
 
 from ipose import logger, IPOSE_DATA
+import ipose.opts
 import ipose.pdf
 import ipose.raster
 
 
-def _filter_kwargs(*keys, **kwargs):
+def _filter_kwargs(*keys, **kwargs) -> dict:
     """Small convenience function for filtering keywors arguments and dispatching
     them to different function calls.
 
@@ -42,6 +43,14 @@ def _filter_kwargs(*keys, **kwargs):
         A filtered dict of keyword arguments.
     """
     return {key: value for key, value in kwargs.items() if key in keys}
+
+
+def _check_kwargs(valid_keys, **kwargs) -> None:
+    """
+    """
+    for key in kwargs.keys():
+        if key not in valid_keys:
+            raise RuntimeError(f'Invalid keyword argument {key} (valid keys are {valid_keys})')
 
 
 def _output_file_path(file_path: str | pathlib.Path, file_extension: str, output_folder: str,
@@ -93,12 +102,16 @@ def face_crop(file_path: str | pathlib.Path, **kwargs) -> None:
 def rasterize(file_path: str | pathlib.Path, **kwargs) -> None:
     """
     """
-    valid_kwargs = ('page_number', 'intermediate_width', 'output_width')
-    _kwargs = _filter_kwargs(kwargs, 'page_number', 'output_width')
-    image = ipose.pdf.rasterize(file_path, image_width=kwargs.get('intermediate_width'), **_kwargs)
-    image = ipose.raster.resize_image(image, width=kwargs.get('output_width'))
-    ipose.raster.save_image(image, _output_file_path(file_path, kwargs.get('file_type'),
-        kwargs.get('output_folder'), kwargs.get('suffix')))
+    valid_keys = ('page_number', 'intermediate_width', 'output_width', 'file_type',
+        'output_folder', 'suffix', 'overwrite', 'interactive')
+    _check_kwargs(valid_keys, **kwargs)
+    options = ipose.opts.default_kwargs(*valid_keys)
+    options.update(**kwargs)
+    _opts = _filter_kwargs(options, 'page_number', 'output_width')
+    image = ipose.pdf.rasterize(file_path, image_width=options.get('intermediate_width'), **_opts)
+    image = ipose.raster.resize_image(image, width=options.get('output_width'))
+    ipose.raster.save_image(image, _output_file_path(file_path, options.get('file_type'),
+        options.get('output_folder'), options.get('suffix')))
 
 
 def tile():
