@@ -21,6 +21,7 @@ import typing
 from ipose import IPOSE_DATA
 
 
+#: Definition of all the optional arguments for the main `ipose` application.
 _OPTION_DICT = {
     # Face detection: opencv setings.
     'scale-factor': dict(type=float, default=1.1,
@@ -74,8 +75,8 @@ def default_value(key: str) -> typing.Any:
     """
     try:
         return _OPTION_DICT[key]['default']
-    except KeyError:
-        raise KeyError(f'Unknown global option {key}')
+    except KeyError as exception:
+        raise KeyError(f'Unknown global option {key}') from exception
 
 
 def default_kwargs(*keys: str) -> dict:
