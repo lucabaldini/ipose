@@ -53,13 +53,20 @@ class MainArgumentParser(argparse.ArgumentParser):
         # See https://stackoverflow.com/questions/8757338/
         subparsers._parser_class = argparse.ArgumentParser
         # Face cropping
-        parser_facecrop = subparsers.add_parser('facecrop', help='crop images to face')
-        self.add_face_detection_group(parser_facecrop)
-        self.add_appearance_group(parser_facecrop)
-        self.add_output_group(parser_facecrop)
-        self.add_file_list(parser_facecrop)
-        parser_facecrop.set_defaults(func=ipose.pipe.face_crop)
-
+        facecrop = subparsers.add_parser('facecrop', help='crop images to face',
+            formatter_class=self._FORMATTER_CLASS)
+        self.add_face_detection_group(facecrop)
+        self.add_appearance_group(facecrop)
+        self.add_output_group(facecrop)
+        self.add_file_list(facecrop)
+        facecrop.set_defaults(func=ipose.pipe.face_crop)
+        # pdf rastering
+        rasterize = subparsers.add_parser('rasterize', help='rasterize a pdf document',
+            formatter_class=self._FORMATTER_CLASS)
+        self.add_rastering_group(rasterize)
+        self.add_output_group(rasterize)
+        self.add_file_list(rasterize)
+        rasterize.set_defaults(func=ipose.pipe.rasterize)
         parser_facetile = subparsers.add_parser('facetile', help='tile face images')
 
     @staticmethod
@@ -122,9 +129,15 @@ class MainArgumentParser(argparse.ArgumentParser):
         MainArgumentParser.add_option_group(container, 'appearance', *keys)
 
     @staticmethod
+    def add_rastering_group(container: argparse._ActionsContainer) -> None:
+        # pylint: disable=missing-function-docstring
+        keys = ('page-number', 'intermediate-width', 'output-width', 'file-type')
+        MainArgumentParser.add_option_group(container, 'rastering', *keys)
+
+    @staticmethod
     def add_output_group(container: argparse._ActionsContainer) -> None:
         # pylint: disable=missing-function-docstring
-        keys = ('output-folder', 'suffix', 'interactive')
+        keys = ('output-folder', 'suffix', 'overwrite', 'interactive')
         MainArgumentParser.add_option_group(container, 'output', *keys)
 
     def run_command(self) -> None:

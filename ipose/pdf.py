@@ -36,7 +36,7 @@ def open_document(file_path: str | pathlib.Path) -> pypdfium2._helpers.document.
 
 
 def rasterize(file_path: str | pathlib.Path, page_number: int = 0,
-    output_width: int = 5000) -> PIL.Image.Image:
+    image_width: int = None) -> PIL.Image.Image:
     """Rasterize a single page of a pdf document into a ``PIL.Image.Image`` object.
 
     Parameters
@@ -47,7 +47,7 @@ def rasterize(file_path: str | pathlib.Path, page_number: int = 0,
     page_number
         The target page number.
 
-    output_width
+    image_width
         The width of the output image (the aspect ratio is preserved).
     """
     document = open_document(file_path)
@@ -58,7 +58,9 @@ def rasterize(file_path: str | pathlib.Path, page_number: int = 0,
     aspect_ratio = original_height / original_width
     logger.debug(f'Original page size: {original_width:.3f} x {original_height:.3f} '
         f'aspect ratio = {aspect_ratio:.3f}')
-    kwargs = dict(scale=output_width / original_width)
+    kwargs = {}
+    if image_width is not None:
+        kwargs['scale'] = image_width / original_width
     logger.debug(f'Rendering options: {kwargs}')
     image = page.render(**kwargs).to_pil()
     return image

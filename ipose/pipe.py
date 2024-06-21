@@ -21,8 +21,8 @@ import pathlib
 import PIL.ImageDraw
 
 from ipose import logger, IPOSE_DATA
-from ipose.raster import Rectangle, run_face_recognition, open_image, resize_image,\
-    elliptical_mask, save_image
+import ipose.pdf
+import ipose.raster
 
 
 def _filter_kwargs(*keys, **kwargs):
@@ -44,16 +44,27 @@ def _filter_kwargs(*keys, **kwargs):
     return {key: value for key, value in kwargs.items() if key in keys}
 
 
+def _output_file_path(file_path: str | pathlib.Path, file_extension: str, output_folder: str,
+    suffix: str = None) -> str:
+    """
+    """
+    file_name = pathlib.Path(file_path).stem
+    if suffix is not None:
+        file_name = f'{file_name}_{suffix}'
+    file_name = f'{file_name}{file_extension}'
+    return pathlib.Path(output_folder) / file_name
+
+
 def face_crop(file_path: str | pathlib.Path, **kwargs) -> None:
     """
     """
     _kwargs = _filter_kwargs('scale_factor', 'min_neighbors', 'min_size', **kwargs)
-    candidates = run_face_recognition(file_path, **_kwargs)
+    candidates = ipos.raster.run_face_recognition(file_path, **_kwargs)
     num_candidates = len(candidates)
-    image = open_image(file_path)
+    image = ipose.raster.open_image(file_path)
     if num_candidates == 0:
          logger.warning(f'No face candidate found in {file_path}, picking generic square...')
-         candidates.append(Rectangle.square_from_size(*image.size))
+         candidates.append(ipose.raster.Rectangle.square_from_size(*image.size))
     if num_candidates > 1:
          logger.warning(f'Multiple face candidates found in {file_path}, picking largest...')
     # Go on with the best face candidate.
@@ -68,21 +79,26 @@ def face_crop(file_path: str | pathlib.Path, **kwargs) -> None:
     box = final_rectangle.bounding_box()
     logger.info(f'Target face bounding box: {box}')
     size = kwargs.get('output_size', 100)
-    image = resize_image(image, size, size, box=box)
+    image = ipose.raster.resize_image(image, size, size, box=box)
     if kwargs.get('circular_mask', False):
-         image.putalpha(elliptical_mask(image))
+         image.putalpha(ipose.raster.elliptical_mask(image))
     file_name = pathlib.Path(file_path).stem
     suffix = kwargs.get('suffix')
     if suffix is not None:
         file_name = f'{file_name}_{suffix}'
     file_name = f'{file_name}.png'
-    save_image(image, pathlib.Path(kwargs.get('output_folder')) / file_name)
+    ipose.raster.save_image(image, pathlib.Path(kwargs.get('output_folder')) / file_name)
 
 
 def rasterize(file_path: str | pathlib.Path, **kwargs) -> None:
     """
     """
-    pass
+    valid_kwargs = ('page_number', 'intermediate_width', 'output_width')
+    _kwargs = _filter_kwargs(kwargs, 'page_number', 'output_width')
+    image = ipose.pdf.rasterize(file_path, image_width=kwargs.get('intermediate_width'), **_kwargs)
+    image = ipose.raster.resize_image(image, width=kwargs.get('output_width'))
+    ipose.raster.save_image(image, _output_file_path(file_path, kwargs.get('file_type'),
+        kwargs.get('output_folder'), kwargs.get('suffix')))
 
 
 def tile():

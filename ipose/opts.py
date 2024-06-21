@@ -34,6 +34,7 @@ _OPTION_DICT = {
     'min-size': dict(type=float, default=0.175,
         help='minimum rectangle size as a fraction of the effective size of the '
             'original image'),
+
     # Face cropping: basic appearance.
     'horizontal-padding': dict(type=float, default=0.4,
         help='fractional padding in the horizontal direction for the best rectangle '
@@ -45,6 +46,17 @@ _OPTION_DICT = {
         help='size of the output (square) image in pixels'),
     'circular-mask': dict(action='store_true', default=False,
         help='if set, a circular mask will be applied in the output image'),
+
+    # pdf rastering.
+    'page-number': dict(type=int, default=0,
+        help='page number within the document'),
+    'intermediate-width': dict(type=int, default=4240,
+        help='width of the intermediate rendered image'),
+    'output-width': dict(type=int, default=1060,
+        help='final width of the rastered image'),
+    'file-type': dict(type=str, default='.png',
+        help='output file type'),
+
     # Mass processing output options.
     'output-folder': dict(type=str, default=IPOSE_DATA,
         help='path to the folder for the output files'),
