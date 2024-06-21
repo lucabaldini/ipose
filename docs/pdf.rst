@@ -10,7 +10,9 @@ on the market are probably
 * `pypdfium2 <https://github.com/pypdfium2-team/pypdfium2>`_
 * `PyMuPDF <https://github.com/pymupdf/PyMuPDF>`_
 
-They all seem well maintained and documented.
+They all seem well maintained and documented. Glancing through the documentation,
+``pdf2image`` requires installing ``poppler`` separately, which apparently is not
+completely straightforward under Windows.
 
 
 Module documentation
