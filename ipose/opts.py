@@ -20,7 +20,7 @@ import argparse
 import typing
 
 from ipose import IPOSE_DATA
-
+import ipose.pipe
 
 
 _OPTION_DICT = {
@@ -101,13 +101,17 @@ class MainArgumentParser(argparse.ArgumentParser):
         """
         super().__init__(description=self._DESCRIPTION, epilog=self._EPILOG,
             formatter_class=self._FORMATTER_CLASS)
-        subparsers = self.add_subparsers(dest='command', required=True, help='sub-command help')
+        subparsers = self.add_subparsers(required=True, help='sub-command help')
         # See https://stackoverflow.com/questions/8757338/
         subparsers._parser_class = argparse.ArgumentParser
+        # Face cropping
         parser_facecrop = subparsers.add_parser('facecrop', help='crop images to face')
         self.add_face_detection_group(parser_facecrop)
         self.add_appearance_group(parser_facecrop)
         self.add_output_group(parser_facecrop)
+        self.add_file_list(parser_facecrop)
+        parser_facecrop.set_defaults(func=ipose.pipe.face_crop)
+
         parser_facetile = subparsers.add_parser('facetile', help='tile face images')
 
     @staticmethod
@@ -152,6 +156,12 @@ class MainArgumentParser(argparse.ArgumentParser):
         return group
 
     @staticmethod
+    def add_file_list(container: argparse._ActionsContainer) -> None:
+        # pylint: disable=missing-function-docstring
+        container.add_argument('file-list', nargs='+',
+            help='list of input file(s) to be processed')
+
+    @staticmethod
     def add_face_detection_group(container: argparse._ActionsContainer) -> None:
         # pylint: disable=missing-function-docstring
         keys = ('scale-factor', 'min-neighbors', 'min-size')
@@ -169,9 +179,11 @@ class MainArgumentParser(argparse.ArgumentParser):
         keys = ('output-folder', 'suffix', 'interactive')
         MainArgumentParser.add_option_group(container, 'output', *keys)
 
-
-
-if __name__ == '__main__':
-    parser = MainArgumentParser()
-    args = parser.parse_args()
-    print(args)
+    def run_command(self) -> None:
+        """Run the actual command tied to the specific options.
+        """
+        kwargs = vars(self.parse_args())
+        file_list = kwargs.pop('file-list')
+        command = kwargs.pop('func')
+        for file_path in file_list:
+            command(file_path, **kwargs)

@@ -17,17 +17,7 @@
 
 
 from ipose.opts import MainArgumentParser
-import ipose.pipe
-
-
 
 
 if __name__ == '__main__':
-
-    parser = MainArgumentParser()
-    args = parser.parse_args()
-
-
-    #kwargs = vars(parser.parse_args())
-    #for file_path in kwargs.pop('files'):
-    #    ipose_face_crop(file_path, **kwargs)
+    MainArgumentParser().run_command()
