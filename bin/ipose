@@ -16,7 +16,126 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from ipose.opts import MainArgumentParser
+import argparse
+
+import ipose.pipe
+from ipose.opts import _OPTION_DICT
+
+
+class _Formatter(argparse.RawDescriptionHelpFormatter, argparse.ArgumentDefaultsHelpFormatter):
+
+    """Do nothing class combining our favorite formatting for the
+    command-line options, i.e., the newlines in the descriptions are
+    preserved and, at the same time, the argument defaults are printed
+    out when the --help options is passed.
+
+    The inspiration for this is coming from one of the comments in
+    https://stackoverflow.com/questions/3853722
+    """
+
+
+
+class MainArgumentParser(argparse.ArgumentParser):
+
+    """Application-wide argument parser.
+    """
+
+    _DESCRIPTION = None
+    _EPILOG = None
+    _FORMATTER_CLASS = _Formatter
+
+    def __init__(self) -> None:
+        """Overloaded method.
+        """
+        super().__init__(description=self._DESCRIPTION, epilog=self._EPILOG,
+            formatter_class=self._FORMATTER_CLASS)
+        subparsers = self.add_subparsers(required=True, help='sub-command help')
+        # See https://stackoverflow.com/questions/8757338/
+        subparsers._parser_class = argparse.ArgumentParser
+        # Face cropping
+        parser_facecrop = subparsers.add_parser('facecrop', help='crop images to face')
+        self.add_face_detection_group(parser_facecrop)
+        self.add_appearance_group(parser_facecrop)
+        self.add_output_group(parser_facecrop)
+        self.add_file_list(parser_facecrop)
+        parser_facecrop.set_defaults(func=ipose.pipe.face_crop)
+
+        parser_facetile = subparsers.add_parser('facetile', help='tile face images')
+
+    @staticmethod
+    def _add_options_from_dict(container: argparse._ActionsContainer, *keys: str) -> None:
+        """Add one or more optional arguments to a given container.
+
+        Parameters
+        ----------
+        container
+            The action container, typically the main OptionParser itself or a
+            child option group.
+
+        keys
+            The name of the optional argument(s) to be added, whose keyword arguments
+            must be defined in the `_OPTION_DICT` variable at the top of the module.
+        """
+        for key in keys:
+            container.add_argument(f'--{key}', **_OPTION_DICT[key])
+
+    @staticmethod
+    def add_option_group(container: argparse._ActionsContainer, name: str,
+        *keys: str) -> argparse._ArgumentGroup:
+        """Add a new option group to the parser, based on the `_OPTION_DICT` variable
+        at the top of the module.
+
+        Parameters
+        ----------
+        name
+            The name of the option group.
+
+        keys
+            The name of the optional argument(s) to be added, whose keyword arguments
+            must be defined in the `_OPTION_DICT` variable at the top of the module.
+
+        Returns
+        -------
+        argparse._ArgumentGroup
+            The newly created group.
+        """
+        group = container.add_argument_group(name)
+        MainArgumentParser._add_options_from_dict(group, *keys)
+        return group
+
+    @staticmethod
+    def add_file_list(container: argparse._ActionsContainer) -> None:
+        # pylint: disable=missing-function-docstring
+        container.add_argument('file-list', nargs='+',
+            help='list of input file(s) to be processed')
+
+    @staticmethod
+    def add_face_detection_group(container: argparse._ActionsContainer) -> None:
+        # pylint: disable=missing-function-docstring
+        keys = ('scale-factor', 'min-neighbors', 'min-size')
+        MainArgumentParser.add_option_group(container, 'face detection', *keys)
+
+    @staticmethod
+    def add_appearance_group(container: argparse._ActionsContainer) -> None:
+        # pylint: disable=missing-function-docstring
+        keys = ('horizontal-padding', 'top-scale-factor', 'output-size', 'circular-mask')
+        MainArgumentParser.add_option_group(container, 'appearance', *keys)
+
+    @staticmethod
+    def add_output_group(container: argparse._ActionsContainer) -> None:
+        # pylint: disable=missing-function-docstring
+        keys = ('output-folder', 'suffix', 'interactive')
+        MainArgumentParser.add_option_group(container, 'output', *keys)
+
+    def run_command(self) -> None:
+        """Run the actual command tied to the specific options.
+        """
+        kwargs = vars(self.parse_args())
+        file_list = kwargs.pop('file-list')
+        command = kwargs.pop('func')
+        for file_path in file_list:
+            command(file_path, **kwargs)
+
 
 
 if __name__ == '__main__':
