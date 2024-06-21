@@ -57,7 +57,7 @@ _OPTION_DICT = {
 
 
 
-def option_default_value(key: str) -> typing.Any:
+def default_option_value(key: str) -> typing.Any:
     """Return the default value for a given option.
 
     Parameters
@@ -71,6 +71,12 @@ def option_default_value(key: str) -> typing.Any:
         The default value for a given optional argument.
     """
     return _OPTION_DICT[key]['default']
+
+
+def default_option_dict() -> dict:
+    """
+    """
+    return {key: value.default for key, value in _OPTION_DICT.items()}
 
 
 

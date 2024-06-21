@@ -412,7 +412,7 @@ def run_face_recognition(file_path: str | pathlib.Path, scale_factor: float = 1.
     list[Rectangle]
         The list of :class:`Rectangle` objects containing the face candidates.
     """
-    if not pathlib.Path.is_file(file_path):
+    if not pathlib.Path.is_file(pathlib.Path(file_path)):
         raise RuntimeError(f'{file_path} does not exist or is not a regular file')
     # pylint: disable=no-member
     # Create a CascadeClassifier object with the proper model file (and the file

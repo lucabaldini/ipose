@@ -47,8 +47,6 @@ def _filter_kwargs(*keys, **kwargs):
 def face_crop(file_path: str | pathlib.Path, **kwargs) -> None:
     """
     """
-    if not isinstance(file_path, pathlib.Path):
-        file_path = pathlib.Path(file_path)
     _kwargs = _filter_kwargs('scale_factor', 'min_neighbors', 'min_size', **kwargs)
     candidates = run_face_recognition(file_path, **_kwargs)
     num_candidates = len(candidates)
@@ -73,9 +71,15 @@ def face_crop(file_path: str | pathlib.Path, **kwargs) -> None:
     image = resize_image(image, size, size, box=box)
     if kwargs.get('circular_mask', False):
          image.putalpha(elliptical_mask(image))
-    file_name = file_path.stem
+    file_name = pathlib.Path(file_path).stem
     suffix = kwargs.get('suffix')
     if suffix is not None:
         file_name = f'{file_name}_{suffix}'
     file_name = f'{file_name}.png'
-    save_image(image, IPOSE_DATA / file_name)
+    save_image(image, pathlib.Path(kwargs.get('output_folder')) / file_name)
+
+
+def rasterize(file_path: str | pathlib.Path, **kwargs) -> None:
+    """
+    """
+    pass
