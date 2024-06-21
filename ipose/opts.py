@@ -49,14 +49,18 @@ _OPTION_DICT = {
         help='path to the folder for the output files'),
     'suffix': dict(type=str, default=None,
         help='optional suffix for the output files'),
+    'overwrite': dict(action='store_true', default=False,
+        help='silently overwrite existing files'),
     'interactive': dict(action='store_true', default=False,
         help='run in interactive mode')
 }
 
 
-
-def default_option_value(key: str) -> typing.Any:
+def default_value(key: str) -> typing.Any:
     """Return the default value for a given option.
+
+    This (re-)raises a `KeyError` if the key does not correspond to a valid optional
+    argument.
 
     Parameters
     ----------
@@ -68,10 +72,27 @@ def default_option_value(key: str) -> typing.Any:
     typing.Any
         The default value for a given optional argument.
     """
-    return _OPTION_DICT[key]['default']
+    try:
+        return _OPTION_DICT[key]['default']
+    except KeyError:
+        raise KeyError(f'Unknown global option {key}')
 
 
-def default_option_dict() -> dict:
+def default_kwargs(*keys: str) -> dict:
+    """Return a dictionary with all the default values corresponding to a set of
+    keys (by default all the optional arguments define in the `_OPTION_DICT` dictionary
+    at the top of the class).
+
+    Parameters
+    ----------
+    keys
+        All the optional argument names (without the leading `--`) we are interested in.
+
+    Returns
+    -------
+    dict
+        A dictionary that can be readily used as `**kwargs` in the proper function
+        call to get the output corresponding to the default values of the global
+        options.
     """
-    """
-    return {key: value.default for key, value in _OPTION_DICT.items()}
+    return {key: default_value(key) for key in keys or _OPTION_DICT.keys()}
