@@ -15,3 +15,10 @@
 
 """Tools for operating on pdf files.
 """
+
+import pathlib
+
+
+def rasterize(file_path: str | pathlib.Path):
+    """
+    """

@@ -19,5 +19,6 @@ List of modules
    :caption: Core
 
    opts
+   pdf
    pipe
    raster
