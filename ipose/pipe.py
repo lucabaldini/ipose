@@ -20,15 +20,18 @@ import pathlib
 
 import PIL.ImageDraw
 
-from ipose import logger, IPOSE_DATA
+from ipose import logger
 import ipose.opts
 import ipose.pdf
 import ipose.raster
 
 
-def _filter_kwargs(*keys, **kwargs) -> dict:
+def _filter_kwargs(*keys: str, **kwargs) -> dict:
     """Small convenience function for filtering keywors arguments and dispatching
     them to different function calls.
+
+    This essenstially returns a copy of the input dictionary only containing the subset
+    of keys specified as arguments.
 
     Parameters
     ----------
@@ -40,87 +43,161 @@ def _filter_kwargs(*keys, **kwargs) -> dict:
 
     Returns
     -------
+    dict
         A filtered dict of keyword arguments.
     """
     return {key: value for key, value in kwargs.items() if key in keys}
 
 
-def _check_kwargs(valid_keys, **kwargs) -> None:
+def _check_kwargs(valid_keys: tuple[str], **kwargs) -> None:
+    """Make sure that the input keyword argument dictionary only contains keys in
+    the predefined tuple passed as the first argument.
+
+    This is raising a ``RuntimeError`` if any extraneous key is found.
+
+    Parameters
+    ----------
+    valid_keys
+        The tuple or list of vali keys.
+
+    kwargs
+        The complete dictionary of keyword arguments.
     """
-    """
-    for key in kwargs.keys():
+    for key in kwargs:
         if key not in valid_keys:
-            raise RuntimeError(f'Invalid keyword argument {key} (valid keys are {valid_keys})')
+            raise RuntimeError(f'Invalid keyword argument \'{key}\' (valid keys are {valid_keys})')
 
 
-def _output_file_path(file_path: str | pathlib.Path, file_extension: str, output_folder: str,
-    suffix: str = None) -> str:
+def _process_kwargs(valid_keys: tuple[str], **kwargs) -> dict:
+    """Return the full set of option for a specific pipeline task call.
+
+    This is basically doing three distinct things:
+
+    * check that all the keyword arguments make sense for the specific task at hand;
+    * retrieve all the default options from the :mod:`ipose.ops` modules;
+    * update the default options with the actual keyword arguments being passed to
+      the relevant function call.
+
+    This is typically the first step of any pipeline call, and ensure that we always
+    start with a complete and valid set of options that are reproducible across
+    different applications.
+
+    Parameters
+    ----------
+    valid_keys
+        The tuple or list of vali keys.
+
+    kwargs
+        The complete dictionary of keyword arguments.
+
+    Returns
+    -------
+    dict
+        The updated dict of keyword arguments.
     """
+    _check_kwargs(valid_keys, **kwargs)
+    options = ipose.opts.default_kwargs(*valid_keys)
+    options.update(**kwargs)
+    return options
+
+
+def _output_file_path(file_path: str | pathlib.Path, **kwargs) -> pathlib.Path:
+    """Return the path to the output file, given that of the input file, for batch
+    processing.
+
+    This is basically starting from the stem of the input file path, adding the
+    optional suffix if defined, changing the file extension and redirecting the
+    thing to the output folder. Note that, being purely a convenient function to
+    be used within this module, is driven by keyword arguments in order to make
+    function call immediate; the keys we expect are ``output_folder``, ``file_type``,
+    and ``suffix``.
+
+    A ``RuntimeError`` is raised if the path to the output file is the same to that
+    to the input file.
+
+    Parameters
+    ----------
+    file_path
+        The path to the input file.
+
+    kwargs:
+        The keyword arguments controlling the path manipulation (``output_folder``,
+        ``file_type``, and ``suffix``).
+
+    Returns
+    -------
+    pathlib.Path
+        The path to the output file.
     """
+    output_folder, file_type, suffix = [kwargs[key] for key in \
+        ('output_folder', 'file_type', 'suffix')]
     file_name = pathlib.Path(file_path).stem
     if suffix is not None:
         file_name = f'{file_name}_{suffix}'
-    file_name = f'{file_name}{file_extension}'
+    file_name = f'{file_name}{file_type}'
     return pathlib.Path(output_folder) / file_name
 
 
+#: Valid keyword arguments for the :meth:`rasterize` method.
+RASTERIZE_VALID_KWARGS = ('page_number', 'intermediate_width', 'output_width',
+    'output_folder', 'file_type', 'suffix', 'overwrite', 'interactive')
+
+
+def rasterize(file_path: str | pathlib.Path, **kwargs) -> None:
+    """Rasterize a single page of a given pdf document.
+    """
+    options = _process_kwargs(RASTERIZE_VALID_KWARGS, **kwargs)
+    _opts = _filter_kwargs('page_number', **options)
+    _opts['image_width'] = options['intermediate_width']
+    image = ipose.pdf.rasterize(file_path, **_opts)
+    image = ipose.raster.resize_image(image, width=options.get('output_width'))
+    ipose.raster.save_image(image, _output_file_path(file_path, **options))
+
+
+#: Valid keyword arguments for the :meth:`face_crop` method.
+FACE_CROP_VALID_KWARGS = ('scale_factor', 'min_neighbors', 'min_size', 'horizontal_padding',
+    'top_scale_factor', 'output_size', 'circular_mask', 'output_folder', 'file_type',
+    'suffix', 'overwrite', 'interactive')
+
+
 def face_crop(file_path: str | pathlib.Path, **kwargs) -> None:
+    """Crop an image to face.
     """
-    """
-    _kwargs = _filter_kwargs('scale_factor', 'min_neighbors', 'min_size', **kwargs)
-    candidates = ipos.raster.run_face_recognition(file_path, **_kwargs)
+    options = _process_kwargs(FACE_CROP_VALID_KWARGS, **kwargs)
+    _opts = _filter_kwargs('scale_factor', 'min_neighbors', 'min_size', **options)
+    candidates = ipose.raster.run_face_recognition(file_path, **_opts)
     num_candidates = len(candidates)
     image = ipose.raster.open_image(file_path)
     if num_candidates == 0:
-         logger.warning(f'No face candidate found in {file_path}, picking generic square...')
-         candidates.append(ipose.raster.Rectangle.square_from_size(*image.size))
+        logger.warning(f'No face candidate found in {file_path}, picking generic square...')
+        candidates.append(ipose.raster.Rectangle.square_from_size(*image.size))
     if num_candidates > 1:
-         logger.warning(f'Multiple face candidates found in {file_path}, picking largest...')
+        logger.warning(f'Multiple face candidates found in {file_path}, picking largest...')
     # Go on with the best face candidate.
-    _kwargs = _filter_kwargs('horizontal_padding', 'top-scale-factor', **kwargs)
+    _opts = _filter_kwargs('horizontal_padding', 'top-scale-factor', **options)
     original_rectangle = candidates[-1]
-    final_rectangle = original_rectangle.setup_for_face_cropping(*image.size, **_kwargs)
+    final_rectangle = original_rectangle.setup_for_face_cropping(*image.size, **_opts)
     if kwargs.get('interactive', False):
-         draw = PIL.ImageDraw.Draw(image)
-         draw.rectangle(original_rectangle.bounding_box(), outline='white', width=2)
-         draw.rectangle(final_rectangle.bounding_box(), outline='red', width=2)
-         image.show()
+        draw = PIL.ImageDraw.Draw(image)
+        draw.rectangle(original_rectangle.bounding_box(), outline='white', width=2)
+        draw.rectangle(final_rectangle.bounding_box(), outline='red', width=2)
+        image.show()
     box = final_rectangle.bounding_box()
     logger.info(f'Target face bounding box: {box}')
     size = kwargs.get('output_size', 100)
     image = ipose.raster.resize_image(image, size, size, box=box)
     if kwargs.get('circular_mask', False):
-         image.putalpha(ipose.raster.elliptical_mask(image))
-    file_name = pathlib.Path(file_path).stem
-    suffix = kwargs.get('suffix')
-    if suffix is not None:
-        file_name = f'{file_name}_{suffix}'
-    file_name = f'{file_name}.png'
-    ipose.raster.save_image(image, pathlib.Path(kwargs.get('output_folder')) / file_name)
+        image.putalpha(ipose.raster.elliptical_mask(image))
+    ipose.raster.save_image(image, _output_file_path(file_path, **options))
 
 
-def rasterize(file_path: str | pathlib.Path, **kwargs) -> None:
-    """
-    """
-    valid_keys = ('page_number', 'intermediate_width', 'output_width', 'file_type',
-        'output_folder', 'suffix', 'overwrite', 'interactive')
-    _check_kwargs(valid_keys, **kwargs)
-    options = ipose.opts.default_kwargs(*valid_keys)
-    options.update(**kwargs)
-    _opts = _filter_kwargs(options, 'page_number', 'output_width')
-    image = ipose.pdf.rasterize(file_path, image_width=options.get('intermediate_width'), **_opts)
-    image = ipose.raster.resize_image(image, width=options.get('output_width'))
-    ipose.raster.save_image(image, _output_file_path(file_path, options.get('file_type'),
-        options.get('output_folder'), options.get('suffix')))
-
-
-def tile():
-    """
-    """
-    pass
-
-
-def animate():
-    """
-    """
-    pass
+# def tile():
+#     """
+#     """
+#     pass
+#
+#
+# def animate():
+#     """
+#     """
+#     pass

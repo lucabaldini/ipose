@@ -54,12 +54,12 @@ _OPTION_DICT = {
         help='width of the intermediate rendered image'),
     'output-width': dict(type=int, default=1060,
         help='final width of the rastered image'),
-    'file-type': dict(type=str, default='.png',
-        help='output file type'),
 
     # Mass processing output options.
     'output-folder': dict(type=str, default=IPOSE_DATA,
         help='path to the folder for the output files'),
+    'file-type': dict(type=str, default='.png',
+        help='output file type'),
     'suffix': dict(type=str, default=None,
         help='optional suffix for the output files'),
     'overwrite': dict(action='store_true', default=False,
