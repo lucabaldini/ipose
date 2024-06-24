@@ -422,6 +422,8 @@ def run_face_recognition(file_path: str | pathlib.Path, scale_factor: float = 1.
     settings = dict(scale_factor=scale_factor, min_neighbors=min_neighbors, min_size=min_size)
     logger.info(f'Running face detection on {file_path} with {settings}...')
     image = cv2.imread(f'{file_path}')
+    if image is None:
+        raise RuntimeError(f'Could not read image file {file_path}')
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # Calculate the minimum size of the output rectangle as that of a square whose
     # side is the geometric mean of the original width and height, multiplied by
@@ -623,6 +625,26 @@ def elliptical_mask(image: PIL.Image.Image) -> PIL.Image.Image:
     return mask
 
 
+
+@dataclasses.dataclass
+class Tiling:
+
+    """Small convenience class representing a tiling.
+    """
+
+    num_cols: int
+    num_rows: int
+    image_size: tuple[int, int]
+    tiling_dict: dict = None
+
+    def __post_init__(self) -> None:
+        """Post-initialization
+        """
+        if self.tiling_dict is None:
+            self.tiling_dict = {}
+
+
+
 def optimal_rectangular_tiling(num_images: int, tile_width: int, tile_height: int = None,
     aspect_ratio: float = 1.414) -> dict:
     """Calculate the optimal rectangular tiling to be used to arrange a given number
@@ -664,11 +686,11 @@ def optimal_rectangular_tiling(num_images: int, tile_width: int, tile_height: in
         f'overall size for the target image is {width} x {height}.')
     # Calculate the actual tiling...
     tile_permutation = random.sample(range(num_tiles), num_tiles)
-    tiling = {}
+    tiling = Tiling(num_cols, num_rows, (width, height))
     for i in range(num_tiles):
         col = i % num_cols
         row = i // num_cols
         index = tile_permutation[i]
         if index < num_images:
-            tiling[index] = (col * tile_width, row * tile_height)
+            tiling.tiling_dict[index] = (col * tile_width, row * tile_height)
     return tiling

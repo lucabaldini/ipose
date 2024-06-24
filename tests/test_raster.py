@@ -61,10 +61,10 @@ def test_rectangular_tiling():
     """
     tiling = optimal_rectangular_tiling(100, 100)
     logger.debug(tiling)
-    assert len(tiling) == 100
+    assert len(tiling.tiling_dict) == 100
     tiling = optimal_rectangular_tiling(100, 100, aspect_ratio=1.)
     logger.debug(tiling)
-    assert len(tiling) == 100
+    assert len(tiling.tiling_dict) == 100
 
 
 

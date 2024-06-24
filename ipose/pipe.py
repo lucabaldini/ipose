@@ -165,7 +165,11 @@ def face_crop(file_path: str | pathlib.Path, **kwargs) -> None:
     """
     options = _process_kwargs(FACE_CROP_VALID_KWARGS, **kwargs)
     _opts = _filter_kwargs('scale_factor', 'min_neighbors', 'min_size', **options)
-    candidates = ipose.raster.run_face_recognition(file_path, **_opts)
+    try:
+        candidates = ipose.raster.run_face_recognition(file_path, **_opts)
+    except RuntimeError as exception:
+        logger.error(f'{exception}, giving up on this one...')
+        return
     num_candidates = len(candidates)
     image = ipose.raster.open_image(file_path)
     if num_candidates == 0:
@@ -194,15 +198,13 @@ def face_crop(file_path: str | pathlib.Path, **kwargs) -> None:
 def tile(*file_list: str | pathlib.Path, **kwargs):
      """
      """
-     image = PIL.Image.new('RGB', (1320, 1320))
+     num_images = len(file_list)
+     size = 100
+     tiling = ipose.raster.optimal_rectangular_tiling(num_images, size)
+     image = PIL.Image.new('RGB', tiling.image_size)
      for i, file_path in enumerate(file_list):
-         if i == 100:
-             break
-         row = i % 10
-         col = i // 10
          im = ipose.raster.open_image(file_path)
-         width, height = im.size
-         image.paste(im, (row * width, col * height))
+         image.paste(im, tiling.tiling_dict[i])
      image.show()
 
 
@@ -214,5 +216,5 @@ def tile(*file_list: str | pathlib.Path, **kwargs):
 
 if __name__ == '__main__':
     import glob
-    file_list = glob.glob('/data/work/pisameet/pm2024/presenters_crop/*')
+    file_list = glob.glob('/home/lbaldini/iposedata/*')
     tile(*file_list)
