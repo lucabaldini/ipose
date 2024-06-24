@@ -56,11 +56,15 @@ def test_face_recognition():
     file_path = IPOSE_TEST_DATA / 'mona_lisa.webp'
     rects = run_face_recognition(file_path, min_neighbors=2, min_size=0.15)
 
-def test_tiling():
+def test_rectangular_tiling():
+    """Test the image tiling routine.
     """
-    """
-    optimal_rectangular_tiling(100, 100)
-    optimal_rectangular_tiling(100, 100, aspect_ratio=1.)
+    tiling = optimal_rectangular_tiling(100, 100)
+    logger.debug(tiling)
+    assert len(tiling) == 100
+    tiling = optimal_rectangular_tiling(100, 100, aspect_ratio=1.)
+    logger.debug(tiling)
+    assert len(tiling) == 100
 
 
 

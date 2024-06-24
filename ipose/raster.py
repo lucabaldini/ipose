@@ -22,6 +22,7 @@ from __future__ import annotations
 import dataclasses
 import numbers
 import pathlib
+import random
 
 import cv2
 import numpy as np
@@ -623,8 +624,29 @@ def elliptical_mask(image: PIL.Image.Image) -> PIL.Image.Image:
 
 
 def optimal_rectangular_tiling(num_images: int, tile_width: int, tile_height: int = None,
-    aspect_ratio: float = 1.414) -> tuple:
-    """
+    aspect_ratio: float = 1.414) -> dict:
+    """Calculate the optimal rectangular tiling to be used to arrange a given number
+    of images into a rectangular mosaic with the given approximate aspect ratio.
+
+    Parameters
+    ----------
+    num_images
+        The number of input images to be tiles.
+
+    tile_width
+        The width of the single tile.
+
+    tile_height
+        The height of the single tile.
+
+    aspect_ratio
+        The approximate aspect ratio of the final, tiled image.
+
+    Returns
+    -------
+    dict
+        A dictionary  of the form {image_id: (posx, posy)} to be used to tile the
+        output image.
     """
     if tile_height is None:
         tile_height = tile_width
@@ -640,3 +662,13 @@ def optimal_rectangular_tiling(num_images: int, tile_width: int, tile_height: in
     height = num_rows * tile_height
     logger.debug(f'Optimal tiling is {num_cols} x {num_rows} = {num_tiles} tiles, '
         f'overall size for the target image is {width} x {height}.')
+    # Calculate the actual tiling...
+    tile_permutation = random.sample(range(num_tiles), num_tiles)
+    tiling = {}
+    for i in range(num_tiles):
+        col = i % num_cols
+        row = i // num_cols
+        index = tile_permutation[i]
+        if index < num_images:
+            tiling[index] = (col * tile_width, row * tile_height)
+    return tiling
