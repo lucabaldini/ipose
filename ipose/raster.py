@@ -635,7 +635,7 @@ class Tiling:
 
 
 def optimal_rectangular_tiling(num_images: int, tile_width: int, tile_height: int = None,
-    aspect_ratio: float = 1.414) -> dict:
+    aspect_ratio: float = 1.414) -> Tiling:
     """Calculate the optimal rectangular tiling to be used to arrange a given number
     of images into a rectangular mosaic with the given approximate aspect ratio.
 
@@ -655,7 +655,7 @@ def optimal_rectangular_tiling(num_images: int, tile_width: int, tile_height: in
 
     Returns
     -------
-    dict
+    Tiling
         A dictionary  of the form {image_id: (posx, posy)} to be used to tile the
         output image.
     """
