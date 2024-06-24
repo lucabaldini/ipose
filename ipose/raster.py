@@ -26,6 +26,7 @@ import random
 
 import cv2
 import numpy as np
+import PIL.ExifTags
 import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageOps
@@ -33,8 +34,6 @@ import PIL.ImageOps
 from ipose import logger
 
 
-_EXIF_ORIENTATION_TAG = 274
-_EXIF_ROTATION_DICT = {3: 180, 6: 270, 8: 90}
 _DEFAULT_FACE_DETECTION_MODEL_PATH = pathlib.Path(cv2.data.haarcascades) /\
     'haarcascade_frontalface_default.xml'
 
@@ -460,20 +459,10 @@ def open_image(file_path: str | pathlib.Path) -> PIL.Image.Image:
     """
     logger.info(f'Loading image data from {file_path}...')
     with PIL.Image.open(file_path) as image:
-        # Parse the original image size and orientation. Note that we want to
-        # put a call to load() here, otherwise we will get into trouble downstream,
-        # depending on the file format.
-        image.load()
-        width, height = image.size
-        orientation = image.getexif().get(_EXIF_ORIENTATION_TAG, None)
-        logger.debug(f'Original size: {width} x {height}, orientation: {orientation}')
-    # If the image is rotated, we need to change the orientation.
-    rotation = _EXIF_ROTATION_DICT.get(orientation, None)
-    if rotation is not None:
-        logger.debug(f'Applying a rotation by {rotation} degrees...')
-        image = image.rotate(rotation, expand=True)
-        width, height = image.size
-        logger.debug(f'Rotated size: {width} x {height}')
+        #image.load()
+        PIL.ImageOps.exif_transpose(image, in_place=True)
+    width, height = image.size
+    logger.debug(f'Image size: {width} x {height}.')
     return image
 
 

@@ -3,7 +3,7 @@ opencv-python-headless
 openpyxl
 pandas
 pdfrw
-pillow
+Pillow > 10
 pyside6
 qrcode
 requests
