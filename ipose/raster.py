@@ -620,3 +620,23 @@ def elliptical_mask(image: PIL.Image.Image) -> PIL.Image.Image:
     mask = PIL.Image.new('L', (width, height), 0)
     PIL.ImageDraw.Draw(mask).ellipse((0, 0, width - 1, height - 1), fill=255, width=0)
     return mask
+
+
+def optimal_rectangular_tiling(num_images: int, tile_width: int, tile_height: int = None,
+    aspect_ratio: float = 1.414) -> tuple:
+    """
+    """
+    if tile_height is None:
+        tile_height = tile_width
+    logger.info(f'Creating optimal rectangular tiling for {num_images} '
+        f'{tile_width} x {tile_height} images, with target aspect ratio {aspect_ratio}...')
+    num_cols = round(np.sqrt(aspect_ratio * num_images * tile_height / tile_width) + 0.5)
+    num_rows = round(num_images / num_cols + 0.5)
+    num_tiles = num_cols * num_rows
+    if num_tiles < num_images:
+        raise RuntimeError(f'{num_tiles} tiles are not enough for {num_images} images, '
+            'this is most likely a bug in optimal_rectangular_tiling()')
+    width = num_cols * tile_width
+    height = num_rows * tile_height
+    logger.debug(f'Optimal tiling is {num_cols} x {num_rows} = {num_tiles} tiles, '
+        f'overall size for the target image is {width} x {height}.')

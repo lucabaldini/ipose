@@ -18,7 +18,7 @@
 
 import pathlib
 
-import PIL.ImageDraw
+import PIL.Image, PIL.ImageDraw
 
 from ipose import logger
 import ipose.opts
@@ -191,13 +191,28 @@ def face_crop(file_path: str | pathlib.Path, **kwargs) -> None:
     ipose.raster.save_image(image, _output_file_path(file_path, **options))
 
 
-# def tile():
-#     """
-#     """
-#     pass
-#
-#
+def tile(*file_list: str | pathlib.Path, **kwargs):
+     """
+     """
+     image = PIL.Image.new('RGB', (1320, 1320))
+     for i, file_path in enumerate(file_list):
+         if i == 100:
+             break
+         row = i % 10
+         col = i // 10
+         im = ipose.raster.open_image(file_path)
+         width, height = im.size
+         image.paste(im, (row * width, col * height))
+     image.show()
+
+
+
 # def animate():
 #     """
 #     """
 #     pass
+
+if __name__ == '__main__':
+    import glob
+    file_list = glob.glob('/data/work/pisameet/pm2024/presenters_crop/*')
+    tile(*file_list)

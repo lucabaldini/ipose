@@ -16,7 +16,8 @@
 
 
 from ipose import logger, IPOSE_TEST_DATA, IPOSE_DATA
-from ipose.raster import Rectangle, open_image, save_image, run_face_recognition
+from ipose.raster import Rectangle, open_image, save_image, run_face_recognition,\
+    optimal_rectangular_tiling
 
 
 
@@ -54,6 +55,12 @@ def test_face_recognition():
     """
     file_path = IPOSE_TEST_DATA / 'mona_lisa.webp'
     rects = run_face_recognition(file_path, min_neighbors=2, min_size=0.15)
+
+def test_tiling():
+    """
+    """
+    optimal_rectangular_tiling(100, 100)
+    optimal_rectangular_tiling(100, 100, aspect_ratio=1.)
 
 
 
