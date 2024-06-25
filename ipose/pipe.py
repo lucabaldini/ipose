@@ -142,15 +142,24 @@ def _output_file_path(file_path: str | pathlib.Path, **kwargs) -> pathlib.Path:
 RASTERIZE_VALID_KWARGS = ('page_number', 'intermediate_width', 'output_width',
     'output_folder', 'file_type', 'suffix', 'overwrite', 'interactive')
 
-def rasterize(file_path: str | pathlib.Path, **kwargs) -> None:
-    """Rasterize a single page of a given pdf document.
+def rasterize(*file_list: str | pathlib.Path, **kwargs) -> None:
+    """Rasterize a single page of a given pdf document or list of documents.
+
+    Parameters
+    ----------
+    file_list
+        The list of path(s) to the input file(s).
+
+    kwargs
+        All the keyword arguments to the task, see :attr:`RASTERIZE_VALID_KWARGS`
     """
     options = _process_kwargs(RASTERIZE_VALID_KWARGS, **kwargs)
     _opts = _filter_kwargs('page_number', **options)
     _opts['image_width'] = options['intermediate_width']
-    image = ipose.pdf.rasterize(file_path, **_opts)
-    image = ipose.raster.resize_image(image, width=options.get('output_width'))
-    ipose.raster.save_image(image, _output_file_path(file_path, **options))
+    for file_path in file_list:
+        image = ipose.pdf.rasterize(file_path, **_opts)
+        image = ipose.raster.resize_image(image, width=options.get('output_width'))
+        ipose.raster.save_image(image, _output_file_path(file_path, **options))
 
 
 #: Valid keyword arguments for the :meth:`face_crop` method.
@@ -158,47 +167,64 @@ FACE_CROP_VALID_KWARGS = ('scale_factor', 'min_neighbors', 'min_size', 'horizont
     'top_scale_factor', 'output_size', 'circular_mask', 'output_folder', 'file_type',
     'suffix', 'overwrite', 'interactive')
 
-def face_crop(file_path: str | pathlib.Path, **kwargs) -> None:
-    """Crop an image to face.
+def face_crop(*file_list: str | pathlib.Path, **kwargs) -> None:
+    """Crop an image or a list of images to the best face candidate.
+
+    Parameters
+    ----------
+    file_list
+        The list of path(s) to the input file(s).
+
+    kwargs
+        All the keyword arguments to the task, see :attr:`FACE_CROP_VALID_KWARGS`
     """
     options = _process_kwargs(FACE_CROP_VALID_KWARGS, **kwargs)
-    _opts = _filter_kwargs('scale_factor', 'min_neighbors', 'min_size', **options)
-    try:
-        candidates = ipose.raster.run_face_recognition(file_path, **_opts)
-    except RuntimeError as exception:
-        logger.error(f'{exception}, giving up on this one...')
-        return
-    num_candidates = len(candidates)
-    image = ipose.raster.open_image(file_path)
-    if num_candidates == 0:
-        logger.warning(f'No face candidate found in {file_path}, picking generic square...')
-        candidates.append(ipose.raster.Rectangle.square_from_size(*image.size))
-    if num_candidates > 1:
-        logger.warning(f'Multiple face candidates found in {file_path}, picking largest...')
-    # Go on with the best face candidate.
-    _opts = _filter_kwargs('horizontal_padding', 'top-scale-factor', **options)
-    original_rectangle = candidates[-1]
-    final_rectangle = original_rectangle.setup_for_face_cropping(*image.size, **_opts)
-    if kwargs.get('interactive', False):
-        draw = PIL.ImageDraw.Draw(image)
-        draw.rectangle(original_rectangle.bounding_box(), outline='white', width=2)
-        draw.rectangle(final_rectangle.bounding_box(), outline='red', width=2)
-        image.show()
-    box = final_rectangle.bounding_box()
-    logger.info(f'Target face bounding box: {box}')
-    size = kwargs.get('output_size', 100)
-    image = ipose.raster.resize_image(image, size, size, box=box)
-    if kwargs.get('circular_mask', False):
-        image.putalpha(ipose.raster.elliptical_mask(image))
-    ipose.raster.save_image(image, _output_file_path(file_path, **options))
+    detect_opts = _filter_kwargs('scale_factor', 'min_neighbors', 'min_size', **options)
+    crop_opts = _filter_kwargs('horizontal_padding', 'top-scale-factor', **options)
+    for file_path in file_list:
+        try:
+            candidates = ipose.raster.run_face_recognition(file_path, **detect_opts)
+        except RuntimeError as exception:
+            logger.error(f'{exception}, giving up on this one...')
+            return
+        num_candidates = len(candidates)
+        image = ipose.raster.open_image(file_path)
+        if num_candidates == 0:
+            logger.warning(f'No face candidate found in {file_path}, picking generic square...')
+            candidates.append(ipose.raster.Rectangle.square_from_size(*image.size))
+        if num_candidates > 1:
+            logger.warning(f'Multiple face candidates found in {file_path}, picking largest...')
+        # Go on with the best face candidate.
+        original_rectangle = candidates[-1]
+        final_rectangle = original_rectangle.setup_for_face_cropping(*image.size, **crop_opts)
+        if kwargs.get('interactive', False):
+            draw = PIL.ImageDraw.Draw(image)
+            draw.rectangle(original_rectangle.bounding_box(), outline='white', width=2)
+            draw.rectangle(final_rectangle.bounding_box(), outline='red', width=2)
+            image.show()
+        box = final_rectangle.bounding_box()
+        logger.info(f'Target face bounding box: {box}')
+        size = kwargs.get('output_size', 100)
+        image = ipose.raster.resize_image(image, size, size, box=box)
+        if kwargs.get('circular_mask', False):
+            image.putalpha(ipose.raster.elliptical_mask(image))
+        ipose.raster.save_image(image, _output_file_path(file_path, **options))
 
 
-#: Valid keyword arguments for the :meth:`face_crop` method.
+#: Valid keyword arguments for the :meth:`tile` method.
 TILE_VALID_KWARGS = ('tile_width', 'tile_height', 'aspect_ratio', 'output_file',
     'overwrite', 'interactive')
 
 def tile(*file_list: str | pathlib.Path, **kwargs):
-     """
+     """Tile a lits of images into a bigger, composite image.
+
+     Parameters
+     ----------
+     file_list
+         The list of path(s) to the input file(s).
+
+     kwargs
+         All the keyword arguments to the task, see :attr:`TILE_VALID_KWARGS`
      """
      options = _process_kwargs(TILE_VALID_KWARGS, **kwargs)
      num_images = len(file_list)
@@ -210,14 +236,3 @@ def tile(*file_list: str | pathlib.Path, **kwargs):
          im = ipose.raster.resize_image(im, tile_width, tile_height)
          image.paste(im, tiling.tiling_dict[i])
      image.show()
-
-
-# def animate():
-#     """
-#     """
-#     pass
-
-if __name__ == '__main__':
-    import glob
-    file_list = glob.glob('/home/lbaldini/iposedata/*')
-    tile(*file_list)
