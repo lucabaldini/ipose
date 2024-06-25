@@ -16,6 +16,7 @@
 """Pipeline facilities.
 """
 
+import math
 import pathlib
 
 import PIL.Image, PIL.ImageDraw
@@ -229,10 +230,16 @@ def tile(*file_list: str | pathlib.Path, **kwargs):
      options = _process_kwargs(TILE_VALID_KWARGS, **kwargs)
      num_images = len(file_list)
      tile_width, tile_height = kwargs['tile_width'], kwargs['tile_height']
+     if tile_height is None:
+         tile_height = tile_width
      tiling = ipose.raster.optimal_rectangular_tiling(num_images, tile_width, tile_height)
      image = PIL.Image.new('RGB', tiling.image_size)
      for i, file_path in enumerate(file_list):
          im = ipose.raster.open_image(file_path)
+         width, height = im.size
+         if not math.isclose(width / height, tile_width / tile_height):
+             logger.warning(f'Image aspect ratio ({width} x {height}) dot match that of '
+                f'the tiles ({tile_width} x {tile_height})!')
          im = ipose.raster.resize_image(im, tile_width, tile_height)
          image.paste(im, tiling.tiling_dict[i])
      image.show()
