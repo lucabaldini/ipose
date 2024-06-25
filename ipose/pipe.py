@@ -142,7 +142,6 @@ def _output_file_path(file_path: str | pathlib.Path, **kwargs) -> pathlib.Path:
 RASTERIZE_VALID_KWARGS = ('page_number', 'intermediate_width', 'output_width',
     'output_folder', 'file_type', 'suffix', 'overwrite', 'interactive')
 
-
 def rasterize(file_path: str | pathlib.Path, **kwargs) -> None:
     """Rasterize a single page of a given pdf document.
     """
@@ -158,7 +157,6 @@ def rasterize(file_path: str | pathlib.Path, **kwargs) -> None:
 FACE_CROP_VALID_KWARGS = ('scale_factor', 'min_neighbors', 'min_size', 'horizontal_padding',
     'top_scale_factor', 'output_size', 'circular_mask', 'output_folder', 'file_type',
     'suffix', 'overwrite', 'interactive')
-
 
 def face_crop(file_path: str | pathlib.Path, **kwargs) -> None:
     """Crop an image to face.
@@ -195,18 +193,23 @@ def face_crop(file_path: str | pathlib.Path, **kwargs) -> None:
     ipose.raster.save_image(image, _output_file_path(file_path, **options))
 
 
+#: Valid keyword arguments for the :meth:`face_crop` method.
+TILE_VALID_KWARGS = ('tile_width', 'tile_height', 'aspect_ratio', 'output_file',
+    'overwrite', 'interactive')
+
 def tile(*file_list: str | pathlib.Path, **kwargs):
      """
      """
+     options = _process_kwargs(TILE_VALID_KWARGS, **kwargs)
      num_images = len(file_list)
-     size = 100
-     tiling = ipose.raster.optimal_rectangular_tiling(num_images, size)
+     tile_width, tile_height = kwargs['tile_width'], kwargs['tile_height']
+     tiling = ipose.raster.optimal_rectangular_tiling(num_images, tile_width, tile_height)
      image = PIL.Image.new('RGB', tiling.image_size)
      for i, file_path in enumerate(file_list):
          im = ipose.raster.open_image(file_path)
+         im = ipose.raster.resize_image(im, tile_width, tile_height)
          image.paste(im, tiling.tiling_dict[i])
      image.show()
-
 
 
 # def animate():

@@ -70,7 +70,13 @@ class MainArgumentParser(argparse.ArgumentParser):
         self.add_file_list(facecrop)
         facecrop.set_defaults(func=ipose.pipe.face_crop)
 
-        parser_facetile = subparsers.add_parser('facetile', help='tile face images')
+        # Image tiling.
+        tile = subparsers.add_parser('tile', help='tile images',
+            formatter_class=self._FORMATTER_CLASS)
+        self.add_tiling_group(tile)
+        self.add_output_group(tile, single_file=True)
+        self.add_file_list(tile)
+        tile.set_defaults(func=ipose.pipe.tile)
 
     @staticmethod
     def _add_options_from_dict(container: argparse._ActionsContainer, *keys: str) -> None:
@@ -114,6 +120,12 @@ class MainArgumentParser(argparse.ArgumentParser):
         return group
 
     @staticmethod
+    def add_file(container: argparse._ActionsContainer) -> None:
+        # pylint: disable=missing-function-docstring
+        container.add_argument('file', type=str,
+            help='path to the input file to be processed')
+
+    @staticmethod
     def add_file_list(container: argparse._ActionsContainer) -> None:
         # pylint: disable=missing-function-docstring
         container.add_argument('file-list', nargs='+',
@@ -138,9 +150,18 @@ class MainArgumentParser(argparse.ArgumentParser):
         MainArgumentParser.add_option_group(container, 'rastering', *keys)
 
     @staticmethod
-    def add_output_group(container: argparse._ActionsContainer) -> None:
+    def add_tiling_group(container: argparse._ActionsContainer) -> None:
         # pylint: disable=missing-function-docstring
-        keys = ('output-folder', 'file-type', 'suffix', 'overwrite', 'interactive')
+        keys = ('tile-width', 'tile-height', 'aspect-ratio')
+        MainArgumentParser.add_option_group(container, 'tiling', *keys)
+
+    @staticmethod
+    def add_output_group(container: argparse._ActionsContainer, single_file: bool = False) -> None:
+        # pylint: disable=missing-function-docstring
+        if single_file:
+            keys = ('output-file', 'overwrite', 'interactive')
+        else:
+            keys = ('output-folder', 'file-type', 'suffix', 'overwrite', 'interactive')
         MainArgumentParser.add_option_group(container, 'output', *keys)
 
     def run_command(self) -> None:
@@ -149,8 +170,7 @@ class MainArgumentParser(argparse.ArgumentParser):
         kwargs = vars(self.parse_args())
         file_list = kwargs.pop('file-list')
         command = kwargs.pop('func')
-        for file_path in file_list:
-            command(file_path, **kwargs)
+        command(*file_list, **kwargs)
 
 
 

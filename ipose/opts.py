@@ -56,6 +56,8 @@ _OPTION_DICT = {
         help='final width of the rastered image'),
 
     # Mass processing output options.
+    'output-file': dict(type=str, default=None,
+        help='path to the output file'),
     'output-folder': dict(type=str, default=IPOSE_DATA,
         help='path to the folder for the output files'),
     'file-type': dict(type=str, default='.png',
@@ -65,7 +67,17 @@ _OPTION_DICT = {
     'overwrite': dict(action='store_true', default=False,
         help='silently overwrite existing files'),
     'interactive': dict(action='store_true', default=False,
-        help='run in interactive mode')
+        help='run in interactive mode'),
+
+    # Image tiling.
+    'tile-width': dict(type=int, default=132,
+        help='width of the single tile in the output image'),
+    'tile-height': dict(type=int, default=None,
+        help='height of the single tile in the output image (None for square tiles)'),
+    'tile-padding': dict(type=int, default=0,
+        help='optional padding between tiles'),
+    'aspect-ratio': dict(type=float, default=1.414,
+        help='approximate aspect ratio for the output image')
 }
 
 
