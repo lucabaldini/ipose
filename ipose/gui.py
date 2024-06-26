@@ -17,7 +17,7 @@
 """
 
 
-from PySide6 import QtCore, QtGui, QtWidgets
+from ipose.__qt__ import QtCore, QtGui, QtWidgets
 
 
 class LayoutWidget(QtWidgets.QWidget):
@@ -116,7 +116,8 @@ class Footer:
 
 if __name__ == '__main__':
     import sys
+    from ipose.__qt__ import exec_qapp
     app = QtWidgets.QApplication(sys.argv)
     header = Header('Title', 'A very, very long subtitle', debug=True)
     header.show()
-    sys.exit(app.exec())
+    exec_qapp(app)

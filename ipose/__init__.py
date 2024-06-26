@@ -28,6 +28,8 @@ from ipose.version import version as __version__
 
 __PACKAGE_NAME__ = 'ipose'
 
+IPOSE_QT_WRAPPER = 'PyQt6'
+
 # Basic package structure.
 IPOSE_ROOT = Path(__file__).parent
 IPOSE_BASE = IPOSE_ROOT.parent
