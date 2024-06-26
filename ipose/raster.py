@@ -635,7 +635,7 @@ class Tiling:
 
 
 def optimal_rectangular_tiling(num_images: int, tile_width: int, tile_height: int = None,
-    aspect_ratio: float = 1.414) -> Tiling:
+    tile_padding: int = 0, aspect_ratio: float = 1.414) -> Tiling:
     """Calculate the optimal rectangular tiling to be used to arrange a given number
     of images into a rectangular mosaic with the given approximate aspect ratio.
 
@@ -649,6 +649,9 @@ def optimal_rectangular_tiling(num_images: int, tile_width: int, tile_height: in
 
     tile_height
         The height of the single tile.
+
+    tile_padding
+        The padding between adjacent tiles, in both the horizontal and vertical directions.
 
     aspect_ratio
         The approximate aspect ratio of the final, tiled image.
@@ -669,8 +672,8 @@ def optimal_rectangular_tiling(num_images: int, tile_width: int, tile_height: in
     if num_tiles < num_images:
         raise RuntimeError(f'{num_tiles} tiles are not enough for {num_images} images, '
             'this is most likely a bug in optimal_rectangular_tiling()')
-    width = num_cols * tile_width
-    height = num_rows * tile_height
+    width = num_cols * (tile_width + tile_padding + 1)
+    height = num_rows * (tile_height + tile_padding + 1)
     logger.debug(f'Optimal tiling is {num_cols} x {num_rows} = {num_tiles} tiles, '
         f'overall size for the target image is {width} x {height}.')
     # Calculate the actual tiling...
@@ -681,5 +684,7 @@ def optimal_rectangular_tiling(num_images: int, tile_width: int, tile_height: in
         row = i // num_cols
         index = tile_permutation[i]
         if index < num_images:
-            tiling.tiling_dict[index] = (col * tile_width, row * tile_height)
+            x = col * (tile_width + tile_padding) + tile_padding
+            y = row * (tile_height + tile_padding) + tile_padding
+            tiling.tiling_dict[index] = (x, y)
     return tiling

@@ -19,7 +19,8 @@
 import math
 import pathlib
 
-import PIL.Image, PIL.ImageDraw
+import PIL.Image
+import PIL.ImageDraw
 
 from ipose import logger
 import ipose.opts
@@ -213,33 +214,38 @@ def face_crop(*file_list: str | pathlib.Path, **kwargs) -> None:
 
 
 #: Valid keyword arguments for the :meth:`tile` method.
-TILE_VALID_KWARGS = ('tile_width', 'tile_height', 'aspect_ratio', 'output_file',
-    'overwrite', 'interactive')
+TILE_VALID_KWARGS = ('tile_width', 'tile_height', 'tile_padding', 'aspect_ratio',
+    'output_file', 'overwrite', 'interactive')
 
 def tile(*file_list: str | pathlib.Path, **kwargs):
-     """Tile a lits of images into a bigger, composite image.
+    """Tile a lits of images into a bigger, composite image.
 
-     Parameters
-     ----------
-     file_list
-         The list of path(s) to the input file(s).
+    Parameters
+    ----------
+    file_list
+        The list of path(s) to the input file(s).
 
-     kwargs
-         All the keyword arguments to the task, see :attr:`TILE_VALID_KWARGS`
-     """
-     options = _process_kwargs(TILE_VALID_KWARGS, **kwargs)
-     num_images = len(file_list)
-     tile_width, tile_height = kwargs['tile_width'], kwargs['tile_height']
-     if tile_height is None:
-         tile_height = tile_width
-     tiling = ipose.raster.optimal_rectangular_tiling(num_images, tile_width, tile_height)
-     image = PIL.Image.new('RGB', tiling.image_size)
-     for i, file_path in enumerate(file_list):
-         im = ipose.raster.open_image(file_path)
-         width, height = im.size
-         if not math.isclose(width / height, tile_width / tile_height):
-             logger.warning(f'Image aspect ratio ({width} x {height}) dot match that of '
+    kwargs
+        All the keyword arguments to the task, see :attr:`TILE_VALID_KWARGS`
+    """
+    options = _process_kwargs(TILE_VALID_KWARGS, **kwargs)
+    num_images = len(file_list)
+    tile_width, tile_height, tile_padding = \
+        [options[key] for key in ('tile_width', 'tile_height', 'tile_padding')]
+    if tile_height is None:
+        tile_height = tile_width
+    tiling = ipose.raster.optimal_rectangular_tiling(num_images, tile_width,
+        tile_height, tile_padding)
+    image = PIL.Image.new('RGB', tiling.image_size)
+    for i, file_path in enumerate(file_list):
+        tile_image = ipose.raster.open_image(file_path)
+        width, height = tile_image.size
+        if not math.isclose(width / height, tile_width / tile_height):
+            logger.warning(f'Image aspect ratio ({width} x {height}) dot match that of '
                 f'the tiles ({tile_width} x {tile_height})!')
-         im = ipose.raster.resize_image(im, tile_width, tile_height)
-         image.paste(im, tiling.tiling_dict[i])
-     image.show()
+        tile_image = ipose.raster.resize_image(tile_image, tile_width, tile_height)
+        image.paste(tile_image, tiling.tiling_dict[i])
+    if kwargs['output_file']:
+        save_image(image, kwargs['output_file'])
+    if kwargs['interactive']:
+        image.show()

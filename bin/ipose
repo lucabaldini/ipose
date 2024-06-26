@@ -152,7 +152,7 @@ class MainArgumentParser(argparse.ArgumentParser):
     @staticmethod
     def add_tiling_group(container: argparse._ActionsContainer) -> None:
         # pylint: disable=missing-function-docstring
-        keys = ('tile-width', 'tile-height', 'aspect-ratio')
+        keys = ('tile-width', 'tile-height', 'tile-padding', 'aspect-ratio')
         MainArgumentParser.add_option_group(container, 'tiling', *keys)
 
     @staticmethod
