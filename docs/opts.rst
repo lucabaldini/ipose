@@ -1,7 +1,7 @@
 .. _opts:
 
-:mod:`ipos.opts` --- Command-line options
-=========================================
+:mod:`ipose.opts` --- Command-line options
+==========================================
 
 One of the basic ideas behind the global structure of the package is to have
 a single `ipose` application that execute all the necessary tasks by a suitable

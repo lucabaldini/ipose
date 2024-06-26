@@ -1,7 +1,7 @@
 .. _pdf:
 
-:mod:`ipos.pdf` --- Manipulating pdf files
-==========================================
+:mod:`ipose.pdf` --- Manipulating pdf files
+===========================================
 
 When it comes to manipulating pdf files in Python, the most prominent alternatives
 on the market are probably

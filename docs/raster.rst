@@ -1,7 +1,7 @@
 .. _raster:
 
-:mod:`ipos.raster` --- Manipulating raster images
-=================================================
+:mod:`ipose.raster` --- Manipulating raster images
+==================================================
 
 
 Module documentation

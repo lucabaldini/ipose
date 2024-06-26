@@ -1,7 +1,7 @@
 .. _pipe:
 
-:mod:`ipos.pipe` --- Pipeline tasks
-===================================
+:mod:`ipose.pipe` --- Pipeline tasks
+====================================
 
 
 Module documentation
