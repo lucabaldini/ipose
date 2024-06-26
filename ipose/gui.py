@@ -40,7 +40,7 @@ class LayoutWidget(QtWidgets.QWidget):
         Debug flag. If True,
     """
 
-    def __init__(self, parent: QtWidgets.QWidget=None, debug: bool = False) -> None:
+    def __init__(self, parent: QtWidgets.QWidget = None, debug: bool = False) -> None:
         """Constructor.
         """
         super().__init__(parent)
@@ -53,6 +53,10 @@ class LayoutWidget(QtWidgets.QWidget):
         """
         if self._debug:
             widget.setStyleSheet("border: 1px solid black;")
+        if row == -1:
+            row = self.layout().rowCount()
+        if column == -1:
+            column = self.layout().columnCount()
         self.layout().addWidget(widget, row, column, row_span, column_span)
         return widget
 
@@ -76,8 +80,8 @@ class Header(LayoutWidget):
     """The screen header.
     """
 
-    def __init__(self, title: str, subtitle: str = None, parent: QtWidgets.QWidget=None,
-        debug: bool = False, **kwargs):
+    def __init__(self, parent: QtWidgets.QWidget = None, title: str = None,
+        subtitle: str = None, debug: bool = False, **kwargs) -> None:
         """Constructor.
         """
         title_font_size = kwargs.get('title_font_size', 20)
@@ -86,12 +90,12 @@ class Header(LayoutWidget):
         self.title_label = self.add_text_label(0, 0, text=title, font_size=title_font_size)
         self.subtitle_label = self.add_text_label(1, 0, text=subtitle, font_size=subtitle_font_size)
 
-    def set_title(self, text):
+    def set_title(self, text: str) -> None:
         """Set the subtitle.
         """
         self.title_label.setText(text)
 
-    def set_subtitle(self, text):
+    def set_subtitle(self, text: str) -> None:
         """Set the subtitle.
         """
         self.subtitle_label.setText(text)
@@ -105,12 +109,56 @@ class PosterBanner:
     and alike).
     """
 
+    def __init__(self, parent: QtWidgets.QWidget = None, message: str = None,
+        debug: bool = False, **kwargs) -> None:
+        """Constructor.
+        """
+        super().__init__(parent, debug)
 
 
-class Footer:
+
+class Footer(LayoutWidget):
 
     """The screen footer.
     """
+
+    def __init__(self, parent: QtWidgets.QWidget = None, message: str = None,
+        debug: bool = False, **kwargs) -> None:
+        """Constructor.
+        """
+        message_font_size = kwargs.get('message_font_size', 10)
+        super().__init__(parent, debug)
+        self.message_label = self.add_text_label(0, 0, text=message, font_size=message_font_size)
+
+    def set_message(self, text: str) -> None:
+        """Set the subtitle.
+        """
+        self.message_label.setText(text)
+
+
+
+class MainWindowBase(LayoutWidget):
+
+    """Base class for a main window.
+    """
+
+    def __init__(self, parent: QtWidgets.QWidget = None, debug: bool = False) -> None:
+        """Constructor.
+        """
+        super().__init__(parent, debug)
+        self.header = self.add_widget(Header(self, debug=debug), 0, 0)
+        self.footer = self.add_widget(Footer(self, debug=debug), -1, 0)
+
+
+
+
+
+class DisplayWindow(MainWindowBase):
+
+    """
+    """
+
+    pass
 
 
 
@@ -118,6 +166,9 @@ if __name__ == '__main__':
     import sys
     from ipose.__qt__ import exec_qapp
     app = QtWidgets.QApplication(sys.argv)
-    header = Header('Title', 'A very, very long subtitle', debug=True)
-    header.show()
+    window = DisplayWindow(debug=True)
+    window.header.set_title('An awesome conference')
+    window.header.set_subtitle('With a very, very long subtitle')
+    window.footer.set_message('And this is a debug message...')
+    window.show()
     exec_qapp(app)
