@@ -246,6 +246,6 @@ def tile(*file_list: str | pathlib.Path, **kwargs):
         tile_image = ipose.raster.resize_image(tile_image, tile_width, tile_height)
         image.paste(tile_image, tiling.tiling_dict[i])
     if kwargs['output_file']:
-        save_image(image, kwargs['output_file'])
+        ipose.raster.save_image(image, kwargs['output_file'])
     if kwargs['interactive']:
         image.show()

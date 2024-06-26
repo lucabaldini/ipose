@@ -662,6 +662,7 @@ def optimal_rectangular_tiling(num_images: int, tile_width: int, tile_height: in
         A dictionary  of the form {image_id: (posx, posy)} to be used to tile the
         output image.
     """
+    # pylint: disable=too-many-locals
     if tile_height is None:
         tile_height = tile_width
     logger.info(f'Creating optimal rectangular tiling for {num_images} '
@@ -684,7 +685,7 @@ def optimal_rectangular_tiling(num_images: int, tile_width: int, tile_height: in
         row = i // num_cols
         index = tile_permutation[i]
         if index < num_images:
-            x = col * (tile_width + tile_padding) + tile_padding
-            y = row * (tile_height + tile_padding) + tile_padding
-            tiling.tiling_dict[index] = (x, y)
+            posx = col * (tile_width + tile_padding) + tile_padding
+            posy = row * (tile_height + tile_padding) + tile_padding
+            tiling.tiling_dict[index] = (posx, posy)
     return tiling
