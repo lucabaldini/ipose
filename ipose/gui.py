@@ -60,8 +60,19 @@ class LayoutWidget(QtWidgets.QWidget):
         self.layout().addWidget(widget, row, column, row_span, column_span)
         return widget
 
+    def add_picture_label(self, row: int, column: int, row_span: int = 1,
+        column_span: int = 1, size: tuple[int, int] = None, alignment: int = None) -> QtWidgets.QLabel:
+        """Add a picture label to the underlying QGridLayout object.
+        """
+        label = QtWidgets.QLabel()
+        if size is not None:
+            label.setFixedSize(*size)
+        if alignment is not None:
+            label.setAlignment(alignment)
+        return self.add_widget(label, row, column, row_span, column_span)
+
     def add_text_label(self, row: int, column: int, row_span: int = 1,
-        column_span: int = 1, text: str = None, font_size: int = None) -> QtWidgets.QLabel:
+        column_span: int = 1, font_size: int = None) -> QtWidgets.QLabel:
         """Add a text label to the underlying QGridLayout object.
         """
         label = QtWidgets.QLabel()
@@ -69,8 +80,6 @@ class LayoutWidget(QtWidgets.QWidget):
         if font_size is not None:
             font.setPointSize(font_size)
             label.setFont(font)
-        if text is not None:
-            label.setText(text)
         return self.add_widget(label, row, column, row_span, column_span)
 
 
@@ -80,15 +89,14 @@ class Header(LayoutWidget):
     """The screen header.
     """
 
-    def __init__(self, parent: QtWidgets.QWidget = None, title: str = None,
-        subtitle: str = None, debug: bool = False, **kwargs) -> None:
+    def __init__(self, parent: QtWidgets.QWidget = None, debug: bool = False, **kwargs) -> None:
         """Constructor.
         """
         title_font_size = kwargs.get('title_font_size', 20)
         subtitle_font_size = kwargs.get('subtitle_font_size', 18)
         super().__init__(parent, debug)
-        self.title_label = self.add_text_label(0, 0, text=title, font_size=title_font_size)
-        self.subtitle_label = self.add_text_label(1, 0, text=subtitle, font_size=subtitle_font_size)
+        self.title_label = self.add_text_label(0, 0, font_size=title_font_size)
+        self.subtitle_label = self.add_text_label(1, 0, font_size=subtitle_font_size)
 
     def set_title(self, text: str) -> None:
         """Set the subtitle.
@@ -102,18 +110,38 @@ class Header(LayoutWidget):
 
 
 
+class RosterTable(LayoutWidget):
 
-class PosterBanner:
+    """
+    """
+
+    def __init__(self, parent: QtWidgets.QWidget = None, debug: bool = False, **kwargs) -> None:
+        """Constructor.
+        """
+        height = 200
+        super().__init__(parent, debug)
+        self.setFixedHeight(height)
+
+
+
+class PosterBanner(LayoutWidget):
 
     """A banner encapsulating all the poster information (presenter, title, qr code
     and alike).
     """
 
-    def __init__(self, parent: QtWidgets.QWidget = None, message: str = None,
-        debug: bool = False, **kwargs) -> None:
+    def __init__(self, parent: QtWidgets.QWidget = None, debug: bool = False, **kwargs) -> None:
         """Constructor.
         """
+        size = (100, 100)
+        height = 150
         super().__init__(parent, debug)
+        self.picture_label = self.add_picture_label(0, 0, size=size)
+        self.qrcode_label = self.add_picture_label(0, 1, size=size)
+        self.roster_table = self.add_widget(RosterTable(self, debug), 0, 2)
+        self.presenter_label = self.add_text_label(1, 0, 1, 2)
+        self.status_label = self.add_text_label(1, 2)
+        self.setFixedHeight(height)
 
 
 
@@ -122,13 +150,12 @@ class Footer(LayoutWidget):
     """The screen footer.
     """
 
-    def __init__(self, parent: QtWidgets.QWidget = None, message: str = None,
-        debug: bool = False, **kwargs) -> None:
+    def __init__(self, parent: QtWidgets.QWidget = None, debug: bool = False, **kwargs) -> None:
         """Constructor.
         """
         message_font_size = kwargs.get('message_font_size', 10)
         super().__init__(parent, debug)
-        self.message_label = self.add_text_label(0, 0, text=message, font_size=message_font_size)
+        self.message_label = self.add_text_label(0, 0, font_size=message_font_size)
 
     def set_message(self, text: str) -> None:
         """Set the subtitle.
@@ -146,8 +173,8 @@ class MainWindowBase(LayoutWidget):
         """Constructor.
         """
         super().__init__(parent, debug)
-        self.header = self.add_widget(Header(self, debug=debug), 0, 0)
-        self.footer = self.add_widget(Footer(self, debug=debug), -1, 0)
+        self.header = self.add_widget(Header(self, debug), 0, 0)
+        self.footer = self.add_widget(Footer(self, debug), -1, 0)
 
 
 
@@ -158,7 +185,13 @@ class DisplayWindow(MainWindowBase):
     """
     """
 
-    pass
+    def __init__(self, parent: QtWidgets.QWidget = None, debug: bool = False) -> None:
+        """Constructor.
+        """
+        super().__init__(parent, debug)
+        self.header = self.add_widget(Header(self, debug), 0, 0)
+        self.poster_banner = self.add_widget(PosterBanner(self, debug), 1, 0)
+        self.footer = self.add_widget(Footer(self, debug), -1, 0)
 
 
 
@@ -170,5 +203,7 @@ if __name__ == '__main__':
     window.header.set_title('An awesome conference')
     window.header.set_subtitle('With a very, very long subtitle')
     window.footer.set_message('And this is a debug message...')
+    window.poster_banner.presenter_label.setText('A. Student')
+    window.poster_banner.status_label.setText('Status message')
     window.show()
     exec_qapp(app)
