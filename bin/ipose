@@ -53,6 +53,13 @@ class MainArgumentParser(argparse.ArgumentParser):
         # See https://stackoverflow.com/questions/8757338/
         subparsers._parser_class = argparse.ArgumentParser
 
+        # qrcode generation.
+        qrcode = subparsers.add_parser('qrcode', help='create qr codes',
+            formatter_class=self._FORMATTER_CLASS)
+        self.add_output_group(qrcode, single_file=True)
+        self.add_data(qrcode)
+        qrcode.set_defaults(func=ipose.pipe.create_qrcode)
+
         # pdf rastering
         rasterize = subparsers.add_parser('rasterize', help='rasterize a pdf document',
             formatter_class=self._FORMATTER_CLASS)
@@ -126,6 +133,12 @@ class MainArgumentParser(argparse.ArgumentParser):
             help='path to the input file to be processed')
 
     @staticmethod
+    def add_data(container: argparse._ActionsContainer) -> None:
+        # pylint: disable=missing-function-docstring
+        container.add_argument('data', type=str,
+            help='input data to be processed')
+
+    @staticmethod
     def add_file_list(container: argparse._ActionsContainer) -> None:
         # pylint: disable=missing-function-docstring
         container.add_argument('file-list', nargs='+',
@@ -166,11 +179,19 @@ class MainArgumentParser(argparse.ArgumentParser):
 
     def run_command(self) -> None:
         """Run the actual command tied to the specific options.
+
+        Warning
+        -------
+        This is ugly, and we do have to find a sensible way to handle different
+        non optional arguments.
         """
         kwargs = vars(self.parse_args())
-        file_list = kwargs.pop('file-list')
+        try:
+            input = kwargs.pop('file-list')
+        except:
+            input = (kwargs.pop('data'), )
         command = kwargs.pop('func')
-        command(*file_list, **kwargs)
+        command(*input, **kwargs)
 
 
 
