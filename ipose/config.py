@@ -24,7 +24,9 @@ class Configuration(dict):
         'gui.header.height': 100,
         'gui.header.title_size': 20,
         'gui.header.subtitle_size': 18,
+        'gui.banner.height': 160,
         'gui.banner.pic_size': (100, 100),
+        'gui.footer.height': 60,
         'gui.footer.message_size': 10
     }
 
@@ -39,6 +41,24 @@ class Configuration(dict):
 
 
 
-if __name__ == '__main__':
-    config = Configuration()
-    print(config)
+_IPOSE_CONFIG = Configuration()
+
+
+def get(key: str):
+    """
+    """
+    return _IPOSE_CONFIG[key]
+
+
+def set(key: str, value) -> None:
+    """
+    """
+    if not key in _IPOSE_CONFIG:
+        raise RuntimeError(f'Unrecognized configuration key {key}')
+    _IPOSE_CONFIG[key] = value
+
+
+def update(file_path: str):
+    """
+    """
+    pass

@@ -23,6 +23,7 @@ import sys
 
 from loguru import logger
 
+from ipose.config import Configuration
 from ipose.version import version as __version__
 
 

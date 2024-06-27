@@ -17,7 +17,9 @@
 """
 
 
+import ipose.config
 from ipose.__qt__ import QtCore, QtGui, QtWidgets
+
 
 
 class LayoutWidget(QtWidgets.QWidget):
@@ -35,23 +37,19 @@ class LayoutWidget(QtWidgets.QWidget):
     ----------
     parent
         The parent widget.
-
-    debug
-        Debug flag. If True,
     """
 
-    def __init__(self, parent: QtWidgets.QWidget = None, debug: bool = False) -> None:
+    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         """Constructor.
         """
         super().__init__(parent)
         self.setLayout(QtWidgets.QGridLayout())
-        self._debug = debug
 
     def add_widget(self, widget: QtWidgets.QWidget, row: int, column: int,
         row_span: int = 1, column_span: int = 1) -> QtWidgets.QWidget:
         """Add a widget to the underlying QGridLayout object.
         """
-        if self._debug:
+        if ipose.config.get('gui.debug'):
             widget.setStyleSheet("border: 1px solid black;")
         if row == -1:
             row = self.layout().rowCount()
@@ -61,14 +59,12 @@ class LayoutWidget(QtWidgets.QWidget):
         return widget
 
     def add_picture_label(self, row: int, column: int, row_span: int = 1,
-        column_span: int = 1, size: tuple[int, int] = None, alignment: int = None) -> QtWidgets.QLabel:
+        column_span: int = 1, size: tuple[int, int] = None) -> QtWidgets.QLabel:
         """Add a picture label to the underlying QGridLayout object.
         """
         label = QtWidgets.QLabel()
         if size is not None:
             label.setFixedSize(*size)
-        if alignment is not None:
-            label.setAlignment(alignment)
         return self.add_widget(label, row, column, row_span, column_span)
 
     def add_text_label(self, row: int, column: int, row_span: int = 1,
@@ -89,14 +85,16 @@ class Header(LayoutWidget):
     """The screen header.
     """
 
-    def __init__(self, parent: QtWidgets.QWidget = None, debug: bool = False, **kwargs) -> None:
+    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         """Constructor.
         """
-        title_font_size = kwargs.get('title_font_size', 20)
-        subtitle_font_size = kwargs.get('subtitle_font_size', 18)
-        super().__init__(parent, debug)
-        self.title_label = self.add_text_label(0, 0, font_size=title_font_size)
-        self.subtitle_label = self.add_text_label(1, 0, font_size=subtitle_font_size)
+        height = ipose.config.get('gui.header.height')
+        title_size = ipose.config.get('gui.header.title_size')
+        subtitle_size = ipose.config.get('gui.header.subtitle_size')
+        super().__init__(parent)
+        self.title_label = self.add_text_label(0, 0, font_size=title_size)
+        self.subtitle_label = self.add_text_label(1, 0, font_size=subtitle_size)
+        self.setFixedHeight(height)
 
     def set_title(self, text: str) -> None:
         """Set the subtitle.
@@ -115,11 +113,11 @@ class RosterTable(LayoutWidget):
     """
     """
 
-    def __init__(self, parent: QtWidgets.QWidget = None, debug: bool = False, **kwargs) -> None:
+    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         """Constructor.
         """
         height = 200
-        super().__init__(parent, debug)
+        super().__init__(parent)
         self.setFixedHeight(height)
 
 
@@ -130,15 +128,15 @@ class PosterBanner(LayoutWidget):
     and alike).
     """
 
-    def __init__(self, parent: QtWidgets.QWidget = None, debug: bool = False, **kwargs) -> None:
+    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         """Constructor.
         """
-        size = (100, 100)
-        height = 150
-        super().__init__(parent, debug)
+        height = ipose.config.get('gui.banner.height')
+        size = ipose.config.get('gui.banner.pic_size')
+        super().__init__(parent)
         self.picture_label = self.add_picture_label(0, 0, size=size)
         self.qrcode_label = self.add_picture_label(0, 1, size=size)
-        self.roster_table = self.add_widget(RosterTable(self, debug), 0, 2)
+        self.roster_table = self.add_widget(RosterTable(self), 0, 2)
         self.presenter_label = self.add_text_label(1, 0, 1, 2)
         self.status_label = self.add_text_label(1, 2)
         self.setFixedHeight(height)
@@ -150,12 +148,14 @@ class Footer(LayoutWidget):
     """The screen footer.
     """
 
-    def __init__(self, parent: QtWidgets.QWidget = None, debug: bool = False, **kwargs) -> None:
+    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         """Constructor.
         """
-        message_font_size = kwargs.get('message_font_size', 10)
-        super().__init__(parent, debug)
-        self.message_label = self.add_text_label(0, 0, font_size=message_font_size)
+        height = ipose.config.get('gui.footer.height')
+        message_size = ipose.config.get('gui.footer.message_size')
+        super().__init__(parent)
+        self.setFixedHeight(height)
+        self.message_label = self.add_text_label(0, 0, font_size=message_size)
 
     def set_message(self, text: str) -> None:
         """Set the subtitle.
@@ -169,12 +169,12 @@ class MainWindowBase(LayoutWidget):
     """Base class for a main window.
     """
 
-    def __init__(self, parent: QtWidgets.QWidget = None, debug: bool = False) -> None:
+    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         """Constructor.
         """
-        super().__init__(parent, debug)
-        self.header = self.add_widget(Header(self, debug), 0, 0)
-        self.footer = self.add_widget(Footer(self, debug), -1, 0)
+        super().__init__(parent)
+        self.header = self.add_widget(Header(self), 0, 0)
+        self.footer = self.add_widget(Footer(self), -1, 0)
 
 
 
@@ -185,13 +185,13 @@ class DisplayWindow(MainWindowBase):
     """
     """
 
-    def __init__(self, parent: QtWidgets.QWidget = None, debug: bool = False) -> None:
+    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         """Constructor.
         """
-        super().__init__(parent, debug)
-        self.header = self.add_widget(Header(self, debug), 0, 0)
-        self.poster_banner = self.add_widget(PosterBanner(self, debug), 1, 0)
-        self.footer = self.add_widget(Footer(self, debug), -1, 0)
+        super().__init__(parent)
+        self.header = self.add_widget(Header(self), 0, 0)
+        self.poster_banner = self.add_widget(PosterBanner(self), 1, 0)
+        self.footer = self.add_widget(Footer(self), 2, 0)
 
 
 
@@ -199,7 +199,8 @@ if __name__ == '__main__':
     import sys
     from ipose.__qt__ import exec_qapp
     app = QtWidgets.QApplication(sys.argv)
-    window = DisplayWindow(debug=True)
+    ipose.config.set('gui.debug', True)
+    window = DisplayWindow()
     window.header.set_title('An awesome conference')
     window.header.set_subtitle('With a very, very long subtitle')
     window.footer.set_message('And this is a debug message...')
