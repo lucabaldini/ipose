@@ -23,6 +23,27 @@ from ipose.__qt__ import QtCore, QtGui, QtWidgets
 
 
 
+class Canvas(QtWidgets.QLabel):
+
+    """
+    """
+
+    def __init__(self, parent: QtWidgets.QWidget = None, size: tuple[int, int] = None) -> None:
+        """Constructor.
+        """
+        super().__init__(parent)
+        if size is not None:
+            self.setFixedSize(*size)
+
+    def paint(self, source: str | pathlib.Path | QtGui.QPixmap) -> None:
+        """
+        """
+        if not isinstance(source, QtGui.QPixmap):
+            source = QtGui.QPixmap(f'{source}')
+        self.setPixmap(source)
+
+
+
 class LayoutWidget(QtWidgets.QWidget):
 
     """Base class for all the GUI widgets.
@@ -52,21 +73,15 @@ class LayoutWidget(QtWidgets.QWidget):
         """
         if ipose.config.get('gui.debug') and isinstance(widget, QtWidgets.QLabel):
             widget.setStyleSheet("border: 1px solid black;")
-        if row == -1:
-            row = self.layout().rowCount()
-        if column == -1:
-            column = self.layout().columnCount()
         self.layout().addWidget(widget, row, column, row_span, column_span)
         return widget
 
-    def add_picture_label(self, row: int, column: int, row_span: int = 1,
-        column_span: int = 1, size: tuple[int, int] = None) -> QtWidgets.QLabel:
+    def add_canvas(self, row: int, column: int, row_span: int = 1, column_span: int = 1,
+        size: tuple[int, int] = None) -> QtWidgets.QLabel:
         """Add a picture label to the underlying QGridLayout object.
         """
-        label = QtWidgets.QLabel()
-        if size is not None:
-            label.setFixedSize(*size)
-        return self.add_widget(label, row, column, row_span, column_span)
+        canvas = Canvas(self, size)
+        return self.add_widget(canvas, row, column, row_span, column_span)
 
     def add_text_label(self, row: int, column: int, row_span: int = 1,
         column_span: int = 1, font_size: int = None) -> QtWidgets.QLabel:
@@ -135,24 +150,22 @@ class PosterBanner(LayoutWidget):
         height = ipose.config.get('gui.banner.height')
         size = ipose.config.get('gui.banner.pic_size')
         super().__init__(parent)
-        self.picture_label = self.add_picture_label(0, 0, size=size)
-        self.qrcode_label = self.add_picture_label(0, 1, size=size)
+        self.portrait_canvas = self.add_canvas(0, 0, size=size)
+        self.qrcode_canvas = self.add_canvas(0, 1, size=size)
         self.roster_table = self.add_widget(RosterTable(self), 0, 2)
         self.presenter_label = self.add_text_label(1, 0, 1, 2)
         self.status_label = self.add_text_label(1, 2)
         self.setFixedHeight(height)
 
-    def set_picture(self, source: str | pathlib.Path | QtGui.QPixmap) -> None:
+    def set_portrait(self, source: str | pathlib.Path | QtGui.QPixmap) -> None:
         """
         """
-        if not isinstance(source, QtGui.QPixmap):
-            source = QtGui.QPixmap(f'{source}')
-        self.picture_label.setPixmap(source)
+        self.portrait_canvas.paint(source)
 
     def set_qrcode(self, source: str | pathlib.Path | QtGui.QPixmap) -> None:
         """
         """
-        pass
+        self.qrcode_canvas.paint(source)
 
 
 
@@ -166,7 +179,7 @@ class PosterCanvas(LayoutWidget):
         """
         width = ipose.config.get('gui.poster.width')
         super().__init__(parent)
-        self.poster_label = self.add_picture_label(0, 0)
+        self.poster_label = self.add_canvas(0, 0)
         self.layout().setColumnMinimumWidth(0, width)
 
 
@@ -219,7 +232,7 @@ if __name__ == '__main__':
     window.header.set_title('An awesome conference')
     window.header.set_subtitle('With a very, very long subtitle')
     window.footer.set_message('And this is a debug message...')
-    window.banner.set_picture(IPOSE_TEST_DATA / 'mona_lisa.png')
+    window.banner.set_portrait(IPOSE_TEST_DATA / 'mona_lisa_crop.png')
     window.banner.presenter_label.setText('A. Student')
     window.banner.status_label.setText('Status message')
     window.show()
