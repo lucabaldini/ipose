@@ -16,6 +16,7 @@
 """Graphical user interface.
 """
 
+import pathlib
 
 import ipose.config
 from ipose.__qt__ import QtCore, QtGui, QtWidgets
@@ -49,7 +50,7 @@ class LayoutWidget(QtWidgets.QWidget):
         row_span: int = 1, column_span: int = 1) -> QtWidgets.QWidget:
         """Add a widget to the underlying QGridLayout object.
         """
-        if ipose.config.get('gui.debug'):
+        if ipose.config.get('gui.debug') and isinstance(widget, QtWidgets.QLabel):
             widget.setStyleSheet("border: 1px solid black;")
         if row == -1:
             row = self.layout().rowCount()
@@ -116,9 +117,9 @@ class RosterTable(LayoutWidget):
     def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         """Constructor.
         """
-        height = 200
+        #height = 200
         super().__init__(parent)
-        self.setFixedHeight(height)
+        #self.setFixedHeight(height)
 
 
 
@@ -140,6 +141,33 @@ class PosterBanner(LayoutWidget):
         self.presenter_label = self.add_text_label(1, 0, 1, 2)
         self.status_label = self.add_text_label(1, 2)
         self.setFixedHeight(height)
+
+    def set_picture(self, source: str | pathlib.Path | QtGui.QPixmap) -> None:
+        """
+        """
+        if not isinstance(source, QtGui.QPixmap):
+            source = QtGui.QPixmap(f'{source}')
+        self.picture_label.setPixmap(source)
+
+    def set_qrcode(self, source: str | pathlib.Path | QtGui.QPixmap) -> None:
+        """
+        """
+        pass
+
+
+
+class PosterCanvas(LayoutWidget):
+
+    """
+    """
+
+    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
+        """Constructor.
+        """
+        width = ipose.config.get('gui.poster.width')
+        super().__init__(parent)
+        self.poster_label = self.add_picture_label(0, 0)
+        self.layout().setColumnMinimumWidth(0, width)
 
 
 
@@ -164,23 +192,7 @@ class Footer(LayoutWidget):
 
 
 
-class MainWindowBase(LayoutWidget):
-
-    """Base class for a main window.
-    """
-
-    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
-        """Constructor.
-        """
-        super().__init__(parent)
-        self.header = self.add_widget(Header(self), 0, 0)
-        self.footer = self.add_widget(Footer(self), -1, 0)
-
-
-
-
-
-class DisplayWindow(MainWindowBase):
+class DisplayWindow(LayoutWidget):
 
     """
     """
@@ -190,13 +202,16 @@ class DisplayWindow(MainWindowBase):
         """
         super().__init__(parent)
         self.header = self.add_widget(Header(self), 0, 0)
-        self.poster_banner = self.add_widget(PosterBanner(self), 1, 0)
-        self.footer = self.add_widget(Footer(self), 2, 0)
+        self.banner = self.add_widget(PosterBanner(self), 1, 0)
+        self.canvas = self.add_widget(PosterCanvas(self), 2, 0)
+        self.layout().setRowStretch(2, 1)
+        self.footer = self.add_widget(Footer(self), 3, 0)
 
 
 
 if __name__ == '__main__':
     import sys
+    from ipose import IPOSE_TEST_DATA
     from ipose.__qt__ import exec_qapp
     app = QtWidgets.QApplication(sys.argv)
     ipose.config.set('gui.debug', True)
@@ -204,7 +219,8 @@ if __name__ == '__main__':
     window.header.set_title('An awesome conference')
     window.header.set_subtitle('With a very, very long subtitle')
     window.footer.set_message('And this is a debug message...')
-    window.poster_banner.presenter_label.setText('A. Student')
-    window.poster_banner.status_label.setText('Status message')
+    window.banner.set_picture(IPOSE_TEST_DATA / 'mona_lisa.png')
+    window.banner.presenter_label.setText('A. Student')
+    window.banner.status_label.setText('Status message')
     window.show()
     exec_qapp(app)
