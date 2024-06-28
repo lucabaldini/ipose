@@ -56,6 +56,7 @@ class MainArgumentParser(argparse.ArgumentParser):
         # qrcode generation.
         qrcode = subparsers.add_parser('qrcode', help='create qr codes',
             formatter_class=self._FORMATTER_CLASS)
+        MainArgumentParser.add_option_group(qrcode, 'appearance', 'output-size')
         self.add_output_group(qrcode, single_file=True)
         self.add_data(qrcode)
         qrcode.set_defaults(func=ipose.pipe.create_qrcode)

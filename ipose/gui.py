@@ -233,6 +233,7 @@ if __name__ == '__main__':
     window.header.set_subtitle('With a very, very long subtitle')
     window.footer.set_message('And this is a debug message...')
     window.banner.set_portrait(IPOSE_TEST_DATA / 'mona_lisa_crop.png')
+    window.banner.set_qrcode(IPOSE_TEST_DATA / 'ipose_qrcode.png')
     window.banner.presenter_label.setText('A. Student')
     window.banner.status_label.setText('Status message')
     window.show()

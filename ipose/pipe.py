@@ -143,19 +143,22 @@ def _output_file_path(file_path: str | pathlib.Path, **kwargs) -> pathlib.Path:
 
 
 #: Valid keyword arguments for the :meth:`rasterize` method.
-QRCODE_VALID_KWARGS = ('output_file', 'overwrite', 'interactive')
+QRCODE_VALID_KWARGS = ('output_size', 'output_file', 'overwrite', 'interactive')
 
 def create_qrcode(data: str, **kwargs):
     """Generate a qrcode based on generic input data.
     """
+    options = _process_kwargs(QRCODE_VALID_KWARGS, **kwargs)
     logger.info(f'Generating QR code for "{data}"...')
     qr = qrcode.QRCode(version=1, box_size=10, border=0)
     qr.add_data(data)
     qr.make(fit=True)
     image = qr.make_image(fill='black', back_color='white')
-    if kwargs['output_file']:
-        ipose.raster.save_image(image, kwargs['output_file'])
-    if kwargs['interactive']:
+    size = options.get('output_size')
+    image = ipose.raster.resize_image(image, size, size)
+    if options['output_file'] is not None:
+        ipose.raster.save_image(image, options['output_file'])
+    if options['interactive']:
         image.show()
 
 
