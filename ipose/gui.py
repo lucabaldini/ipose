@@ -104,13 +104,14 @@ class Header(LayoutWidget):
     def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         """Constructor.
         """
-        height = ipose.config.get('gui.header.height')
         title_size = ipose.config.get('gui.header.title_size')
         subtitle_size = ipose.config.get('gui.header.subtitle_size')
+        logo_size = ipose.config.get('gui.header.logo_size')
         super().__init__(parent)
         self.title_label = self.add_text_label(0, 0, font_size=title_size)
         self.subtitle_label = self.add_text_label(1, 0, font_size=subtitle_size)
-        self.setFixedHeight(height)
+        self.logo_canvas = self.add_canvas(0, 1, 2, size=logo_size)
+        #self.setStyleSheet("background-color: blue; color: white;")
 
     def set_title(self, text: str) -> None:
         """Set the subtitle.
@@ -121,6 +122,11 @@ class Header(LayoutWidget):
         """Set the subtitle.
         """
         self.subtitle_label.setText(text)
+
+    def set_logo(self, file_path: str | pathlib.Path) -> None:
+        """
+        """
+        self.logo_canvas.paint(file_path)
 
 
 
@@ -166,6 +172,20 @@ class PosterBanner(LayoutWidget):
         """
         """
         self.qrcode_canvas.paint(source)
+
+    def set_presenter(self, name: str, affiliation: str) -> None:
+        """
+        """
+        text = f'<font color="black" size="4">{name}</font><br/>'\
+            f'<font color="gray" size="2">{affiliation}</font>'
+        self.presenter_label.setText(text)
+
+    def set_status(self, text: str) -> None:
+        """
+        """
+        text = f'<font color="white" size="4">F</font><br/>'\
+            f'<font color="black" size="2">{text}</font>'
+        self.status_label.setText(text)
 
 
 
@@ -234,7 +254,7 @@ if __name__ == '__main__':
     window.footer.set_message('And this is a debug message...')
     window.banner.set_portrait(IPOSE_TEST_DATA / 'mona_lisa_crop.png')
     window.banner.set_qrcode(IPOSE_TEST_DATA / 'ipose_qrcode.png')
-    window.banner.presenter_label.setText('A. Student')
-    window.banner.status_label.setText('Status message')
+    window.banner.set_presenter('Mona Lisa', 'Gherardini Family (Florence)')
+    window.banner.set_status('Status messages will be displayed in this box...')
     window.show()
     exec_qapp(app)

@@ -21,13 +21,13 @@ class Configuration(dict):
 
     _FIELDS = {
         'gui.debug': False,
-        'gui.header.height': 100,
+        'gui.header.logo_size': (100, 100),
         'gui.header.title_size': 20,
         'gui.header.subtitle_size': 18,
         'gui.banner.height': 160,
         'gui.banner.pic_size': (100, 100),
         'gui.poster.width': 1060,
-        'gui.footer.height': 60,
+        'gui.footer.height': 40,
         'gui.footer.message_size': 10
     }
 
