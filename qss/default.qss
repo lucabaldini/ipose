@@ -1,0 +1,24 @@
+QLabel {
+  color: black;
+  font-size: 16px;
+}
+
+QLabel#title {
+  font-size: 28px;
+}
+
+QLabel#subtitle {
+  font-size: 22px;
+}
+
+QLabel#name {
+}
+
+QLabel#affiliation {
+  color: gray;
+  font-size: 12px;
+}
+
+QLabel#message {
+  font-size: 12px;
+}
