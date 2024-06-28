@@ -23,10 +23,9 @@ class Configuration(dict):
         'gui.stylesheet': None,
         'gui.debug': False,
         'gui.header.logo_size': (100, 100),
-        'gui.banner.height': 180,
         'gui.banner.pic_size': (100, 100),
         'gui.poster.width': 1060,
-        'gui.footer.height': 40,
+        'gui.footer.height': 30
     }
 
     """Configuration class.
