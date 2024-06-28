@@ -18,9 +18,12 @@
 
 import pathlib
 
+from ipose import IPOSE_QSS, logger
 import ipose.config
 from ipose.__qt__ import QtCore, QtGui, QtWidgets
 
+
+_DEFAULT_STYLESHEET = IPOSE_QSS / 'default.qss'
 
 
 class Canvas(QtWidgets.QLabel):
@@ -61,20 +64,33 @@ class LayoutWidget(QtWidgets.QWidget):
         The parent widget.
     """
 
+    OBJECT_NAME = None
+
     def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         """Constructor.
         """
         super().__init__(parent)
         self.setLayout(QtWidgets.QGridLayout())
+        if self.OBJECT_NAME is not None:
+            self.setObjectName(self.OBJECT_NAME)
 
     def add_widget(self, widget: QtWidgets.QWidget, row: int, column: int,
-        row_span: int = 1, column_span: int = 1) -> QtWidgets.QWidget:
+        row_span: int = 1, column_span: int = 1, object_name: str = None) -> QtWidgets.QWidget:
         """Add a widget to the underlying QGridLayout object.
         """
         if ipose.config.get('gui.debug') and isinstance(widget, QtWidgets.QLabel):
             widget.setStyleSheet("border: 1px solid black;")
         self.layout().addWidget(widget, row, column, row_span, column_span)
+        if object_name is not None:
+            widget.setObjectName(object_name)
         return widget
+
+    def add_text_label(self, row: int, column: int, row_span: int = 1,
+        column_span: int = 1, object_name: str = None) -> QtWidgets.QLabel:
+        """Add a text label to the underlying QGridLayout object.
+        """
+        label = QtWidgets.QLabel()
+        return self.add_widget(label, row, column, row_span, column_span, object_name)
 
     def add_canvas(self, row: int, column: int, row_span: int = 1, column_span: int = 1,
         size: tuple[int, int] = None) -> QtWidgets.QLabel:
@@ -82,17 +98,6 @@ class LayoutWidget(QtWidgets.QWidget):
         """
         canvas = Canvas(self, size)
         return self.add_widget(canvas, row, column, row_span, column_span)
-
-    def add_text_label(self, row: int, column: int, row_span: int = 1,
-        column_span: int = 1, font_size: int = None) -> QtWidgets.QLabel:
-        """Add a text label to the underlying QGridLayout object.
-        """
-        label = QtWidgets.QLabel()
-        font = label.font()
-        if font_size is not None:
-            font.setPointSize(font_size)
-            label.setFont(font)
-        return self.add_widget(label, row, column, row_span, column_span)
 
 
 
@@ -104,12 +109,10 @@ class Header(LayoutWidget):
     def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         """Constructor.
         """
-        title_size = ipose.config.get('gui.header.title_size')
-        subtitle_size = ipose.config.get('gui.header.subtitle_size')
         logo_size = ipose.config.get('gui.header.logo_size')
         super().__init__(parent)
-        self.title_label = self.add_text_label(0, 0, font_size=title_size)
-        self.subtitle_label = self.add_text_label(1, 0, font_size=subtitle_size)
+        self.title_label = self.add_text_label(0, 0, object_name='title')
+        self.subtitle_label = self.add_text_label(1, 0, object_name='subtitle')
         self.logo_canvas = self.add_canvas(0, 1, 2, size=logo_size)
         #self.setStyleSheet("background-color: blue; color: white;")
 
@@ -159,8 +162,9 @@ class PosterBanner(LayoutWidget):
         self.portrait_canvas = self.add_canvas(0, 0, size=size)
         self.qrcode_canvas = self.add_canvas(0, 1, size=size)
         self.roster_table = self.add_widget(RosterTable(self), 0, 2)
-        self.presenter_label = self.add_text_label(1, 0, 1, 2)
-        self.status_label = self.add_text_label(1, 2)
+        self.name_label = self.add_text_label(1, 0, 1, 2, object_name='name')
+        self.affiliation_label = self.add_text_label(2, 0, 1, 2, object_name='affiliation')
+        self.status_label = self.add_text_label(2, 2, object_name='message')
         self.setFixedHeight(height)
 
     def set_portrait(self, source: str | pathlib.Path | QtGui.QPixmap) -> None:
@@ -176,15 +180,12 @@ class PosterBanner(LayoutWidget):
     def set_presenter(self, name: str, affiliation: str) -> None:
         """
         """
-        text = f'<font color="black" size="4">{name}</font><br/>'\
-            f'<font color="gray" size="2">{affiliation}</font>'
-        self.presenter_label.setText(text)
+        self.name_label.setText(name)
+        self.affiliation_label.setText(affiliation)
 
     def set_status(self, text: str) -> None:
         """
         """
-        text = f'<font color="white" size="4">F</font><br/>'\
-            f'<font color="black" size="2">{text}</font>'
         self.status_label.setText(text)
 
 
@@ -213,10 +214,9 @@ class Footer(LayoutWidget):
         """Constructor.
         """
         height = ipose.config.get('gui.footer.height')
-        message_size = ipose.config.get('gui.footer.message_size')
         super().__init__(parent)
         self.setFixedHeight(height)
-        self.message_label = self.add_text_label(0, 0, font_size=message_size)
+        self.message_label = self.add_text_label(0, 0, object_name='message')
 
     def set_message(self, text: str) -> None:
         """Set the subtitle.
@@ -242,11 +242,27 @@ class DisplayWindow(LayoutWidget):
 
 
 
+
+def bootstrap_qapplication() -> QtWidgets.QApplication:
+    """Create a QApplication object and apply the proper stypesheet.
+    """
+    #pylint: disable=unspecified-encoding
+    stylesheet = ipose.config.get('gui.stylesheet')
+    if stylesheet is None:
+        stylesheet = _DEFAULT_STYLESHEET
+    qapp = QtWidgets.QApplication(sys.argv)
+    logger.info(f'Applying stylesheet {stylesheet} to the main application...')
+    with open(stylesheet, 'r') as stylesheet:
+        qapp.setStyleSheet(stylesheet.read())
+    return qapp
+
+
+
 if __name__ == '__main__':
     import sys
     from ipose import IPOSE_TEST_DATA
     from ipose.__qt__ import exec_qapp
-    app = QtWidgets.QApplication(sys.argv)
+    app = bootstrap_qapplication()
     ipose.config.set('gui.debug', True)
     window = DisplayWindow()
     window.header.set_title('An awesome conference')
@@ -255,7 +271,7 @@ if __name__ == '__main__':
     window.banner.set_portrait(IPOSE_TEST_DATA / 'mona_lisa_crop.png')
     window.banner.set_qrcode(IPOSE_TEST_DATA / 'ipose_qrcode.png')
     window.banner.set_presenter('Mona Lisa', 'Gherardini Family (Florence)')
-    window.canvas.poster_canvas.paint(IPOSE_TEST_DATA / 'cs_women.png')
+    window.canvas.poster_canvas.paint(IPOSE_TEST_DATA / 'leonardo.png')
     window.banner.set_status('Status messages will be displayed in this box...')
     window.show()
     exec_qapp(app)

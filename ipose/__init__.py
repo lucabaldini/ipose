@@ -36,6 +36,7 @@ IPOSE_ROOT = Path(__file__).parent
 IPOSE_BASE = IPOSE_ROOT.parent
 IPOSE_DOCS = IPOSE_BASE / 'docs'
 IPOSE_EXT = IPOSE_BASE / 'ext'
+IPOSE_QSS = IPOSE_BASE / 'qss'
 IPOSE_TESTS = IPOSE_BASE / 'tests'
 IPOSE_TEST_DATA = IPOSE_TESTS / 'data'
 
