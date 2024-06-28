@@ -128,22 +128,27 @@ class MainArgumentParser(argparse.ArgumentParser):
         return group
 
     @staticmethod
-    def add_file(container: argparse._ActionsContainer) -> None:
+    def _add_input(container: argparse._ActionsContainer, **kwargs) -> None:
         # pylint: disable=missing-function-docstring
-        container.add_argument('file', type=str,
-            help='path to the input file to be processed')
+        container.add_argument('input', **kwargs)
 
     @staticmethod
-    def add_data(container: argparse._ActionsContainer) -> None:
+    def add_file(container: argparse._ActionsContainer) -> None:
         # pylint: disable=missing-function-docstring
-        container.add_argument('data', type=str,
-            help='input data to be processed')
+        MainArgumentParser._add_input(container, type=str,
+            help='path to the input file to be processed')
 
     @staticmethod
     def add_file_list(container: argparse._ActionsContainer) -> None:
         # pylint: disable=missing-function-docstring
-        container.add_argument('file-list', nargs='+',
+        MainArgumentParser._add_input(container, nargs='+',
             help='list of input file(s) to be processed')
+
+    @staticmethod
+    def add_data(container: argparse._ActionsContainer) -> None:
+        # pylint: disable=missing-function-docstring
+        MainArgumentParser._add_input(container, type=str,
+            help='input data to be processed')
 
     @staticmethod
     def add_face_detection_group(container: argparse._ActionsContainer) -> None:
@@ -180,17 +185,13 @@ class MainArgumentParser(argparse.ArgumentParser):
 
     def run_command(self) -> None:
         """Run the actual command tied to the specific options.
-
-        Warning
-        -------
-        This is ugly, and we do have to find a sensible way to handle different
-        non optional arguments.
         """
         kwargs = vars(self.parse_args())
-        try:
-            input = kwargs.pop('file-list')
-        except:
-            input = (kwargs.pop('data'), )
+        input = kwargs.pop('input')
+        # Mind if the input is a string we don't normally want to interate on the
+        # characters.
+        if isinstance(input, str):
+            input = (input, )
         command = kwargs.pop('func')
         command(*input, **kwargs)
 
