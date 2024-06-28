@@ -199,7 +199,7 @@ class PosterCanvas(LayoutWidget):
         """
         width = ipose.config.get('gui.poster.width')
         super().__init__(parent)
-        self.poster_label = self.add_canvas(0, 0)
+        self.poster_canvas = self.add_canvas(0, 0)
         self.layout().setColumnMinimumWidth(0, width)
 
 
@@ -255,6 +255,7 @@ if __name__ == '__main__':
     window.banner.set_portrait(IPOSE_TEST_DATA / 'mona_lisa_crop.png')
     window.banner.set_qrcode(IPOSE_TEST_DATA / 'ipose_qrcode.png')
     window.banner.set_presenter('Mona Lisa', 'Gherardini Family (Florence)')
+    window.canvas.poster_canvas.paint(IPOSE_TEST_DATA / 'cs_women.png')
     window.banner.set_status('Status messages will be displayed in this box...')
     window.show()
     exec_qapp(app)
