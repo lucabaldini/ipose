@@ -16,6 +16,8 @@
 """Graphical user interface.
 """
 
+from enum import Enum, auto
+import math
 import pathlib
 
 from ipose import IPOSE_QSS, logger
@@ -26,26 +28,117 @@ from ipose.__qt__ import QtCore, QtGui, QtWidgets
 _DEFAULT_STYLESHEET = IPOSE_QSS / 'default.qss'
 
 
+class ResizePolicy(Enum):
+
+    """Enum class for the ``QPixmap`` resize policy.
+    """
+
+    DO_NOT_RESIZE = auto()
+    SCALE_TO_WIDTH = auto()
+    SCALE_TO_HEIGHT = auto()
+    SCALE_TO_SIZE = auto()
+
+
+
 class Canvas(QtWidgets.QLabel):
 
-    """
+    """Simple wrapper around the ``QtWidgets.QLabel`` class representing a widget
+    to display a picture, be that the actual poster, a logo, a close-up picture
+    of the presenter or a qrcode.
+
+    Parameters
+    ----------
+    parent
+        The parent widget.
+
+    width
+        The width of the canvas (if set, this is frozen for the entire lifetime
+        of the object).
+
+    height
+        The height of the canvas (if set, this is frozen for the entire lifetime
+        of the object).
     """
 
-    def __init__(self, parent: QtWidgets.QWidget = None, size: tuple[int, int] = None) -> None:
+    _DEFAULT_TRANSFORM = QtCore.Qt.TransformationMode.SmoothTransformation
+
+    def __init__(self, parent: QtWidgets.QWidget = None, width: int = None,
+        height: int = None) -> None:
         """Constructor.
         """
         super().__init__(parent)
-        if size is not None:
-            self.setFixedSize(*size)
+        if width is not None:
+            self.setFixedWidth(width)
+        if height is not None:
+            self.setFixedHeight(height)
 
-    def paint(self, source: str | pathlib.Path | QtGui.QPixmap, resize: bool = False) -> None:
+    @staticmethod
+    def scale_to_width(pixmap: QtGui.QPixmap, width: int,
+        transform: QtCore.Qt.TransformationMode = _DEFAULT_TRANSFORM) -> QtGui.QPixmap:
+        """Scale a given ``QtGui.QPixmap`` object to a target width.
+
+        Parameters
+        ----------
+        pixmap
+            The original ``QtGui.QPixmap`` object.
+
+        width
+            The target width in pixels.
+
+        transform
+            The scaling algorithm.
         """
+        if pixmap.width() == width:
+            return pixmap
+        logger.debug(f'Resizing pixmap to width ({pixmap.width()} -> {width})...')
+        return pixmap.scaledToWidth(width, transform)
+
+    @staticmethod
+    def scale_to_height(pixmap: QtGui.QPixmap, height: int,
+        transform: QtCore.Qt.TransformationMode = _DEFAULT_TRANSFORM) -> QtGui.QPixmap:
+        """Scale a given ``QtGui.QPixmap`` object to a target height.
+
+        Parameters
+        ----------
+        pixmap
+            The original ``QtGui.QPixmap`` object.
+
+        height
+            The target height in pixels.
+
+        transform
+            The scaling algorithm.
+        """
+        if pixmap.height() == height:
+            return pixmap
+        logger.debug(f'Resizing pixmap to height ({pixmap.height()} -> {height})...')
+        return pixmap.scaledToHeight(height, transform)
+
+    @staticmethod
+    def scale_to_size(pixmap: QtGui.QPixmap, width: int, height: int,
+        transform: QtCore.Qt.TransformationMode = _DEFAULT_TRANSFORM) -> QtGui.QPixmap:
+        """Scale a given ``QtGui.QPixmap`` object to a target size.
+        """
+        source_aspect_ratio = pixmap.width() / pixmap.height()
+        target_aspect_ratio = width / height
+        if not math.isclose(source_aspect_ratio, target_aspect_ratio):
+            raise RuntimeError(f'Mismatch in aspect ratio ({source_aspect_ratio} vs '
+                f'{target_aspect_ratio}) while painting canvas')
+        return Canvas.scale_to_width(pixmap, width, transform)
+
+    def paint(self, source: str | pathlib.Path | QtGui.QPixmap,
+        resize_policy: ResizePolicy = ResizePolicy.DO_NOT_RESIZE,
+        transform: QtCore.Qt.TransformationMode = _DEFAULT_TRANSFORM) -> None:
+        """Paint a given image on the canvas.
         """
         if not isinstance(source, QtGui.QPixmap):
             source = QtGui.QPixmap(f'{source}')
-        if resize:
-            source = source.scaledToHeight(self.height(),
-                QtCore.Qt.TransformationMode.SmoothTransformation)
+        if resize_policy == ResizePolicy.SCALE_TO_WIDTH:
+            source = self.scale_to_width(source, self.width(), transform)
+        elif resize_policy == ResizePolicy.SCALE_TO_HEIGHT:
+            source = self.scale_to_height(source, self.height(), transform)
+        elif resize_policy == ResizePolicy.SCALE_TO_SIZE:
+            source = self.scale_to_size(source, self.width(), self.height(), transform)
         self.setPixmap(source)
 
 
@@ -93,10 +186,10 @@ class LayoutFrame(QtWidgets.QFrame):
         return self.add_widget(label, row, column, row_span, column_span, object_name)
 
     def add_canvas(self, row: int, column: int, row_span: int = 1, column_span: int = 1,
-        size: tuple[int, int] = None, object_name: str = None) -> QtWidgets.QLabel:
+        width: int = None, height: int = None, object_name: str = None) -> QtWidgets.QLabel:
         """Add a picture label to the underlying QGridLayout object.
         """
-        canvas = Canvas(self, size)
+        canvas = Canvas(self, width, height)
         return self.add_widget(canvas, row, column, row_span, column_span, object_name)
 
 
@@ -109,11 +202,11 @@ class Header(LayoutFrame):
     def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         """Constructor.
         """
-        logo_size = ipose.config.get('gui.header.logo_size')
         super().__init__(parent)
+        self.layout().setColumnStretch(0, 1)
         self.title_label = self.add_text_label(0, 0, object_name='title')
         self.subtitle_label = self.add_text_label(1, 0, object_name='subtitle')
-        self.logo_canvas = self.add_canvas(0, 1, 3, size=logo_size, object_name='logo')
+        self.logo_canvas = self.add_canvas(0, 1, 3, height=ipose.config.get('gui.header.height'))
 
     def set_title(self, text: str) -> None:
         """Set the subtitle.
@@ -128,7 +221,7 @@ class Header(LayoutFrame):
     def set_logo(self, file_path: str | pathlib.Path) -> None:
         """
         """
-        self.logo_canvas.paint(file_path, resize=True)
+        self.logo_canvas.paint(file_path, ResizePolicy.SCALE_TO_HEIGHT)
 
 
 
@@ -157,8 +250,8 @@ class PosterBanner(LayoutFrame):
         """
         size = ipose.config.get('gui.banner.pic_size')
         super().__init__(parent)
-        self.portrait_canvas = self.add_canvas(0, 0, size=size)
-        self.qrcode_canvas = self.add_canvas(0, 1, size=size)
+        self.portrait_canvas = self.add_canvas(0, 0, 1, 1, *size)
+        self.qrcode_canvas = self.add_canvas(0, 1, 1, 1, *size)
         self.roster_table = self.add_widget(RosterTable(self), 0, 2, 2)
         self.name_label = self.add_text_label(1, 0, 1, 2, object_name='name')
         self.affiliation_label = self.add_text_label(2, 0, 1, 2, object_name='affiliation')
@@ -167,12 +260,12 @@ class PosterBanner(LayoutFrame):
     def set_portrait(self, source: str | pathlib.Path | QtGui.QPixmap) -> None:
         """
         """
-        self.portrait_canvas.paint(source)
+        self.portrait_canvas.paint(source, ResizePolicy.SCALE_TO_SIZE)
 
     def set_qrcode(self, source: str | pathlib.Path | QtGui.QPixmap) -> None:
         """
         """
-        self.qrcode_canvas.paint(source)
+        self.qrcode_canvas.paint(source, ResizePolicy.SCALE_TO_SIZE)
 
     def set_presenter(self, name: str, affiliation: str) -> None:
         """
@@ -271,7 +364,7 @@ if __name__ == '__main__':
     window.banner.set_portrait(IPOSE_TEST_DATA / 'mona_lisa_crop.png')
     window.banner.set_qrcode(IPOSE_TEST_DATA / 'ipose_qrcode.png')
     window.banner.set_presenter('Monna Lisa', 'Gherardini Family (Florence)')
-    window.canvas.poster_canvas.paint(IPOSE_TEST_DATA / 'leonardo.png')
+    window.canvas.poster_canvas.paint(IPOSE_TEST_DATA / 'leonardo.png', ResizePolicy.DO_NOT_RESIZE)
     window.banner.set_status('Status messages will be displayed in this box...')
     window.show()
     exec_qapp(app)
