@@ -52,26 +52,27 @@ CODES = [mpath.Path.MOVETO,
          mpath.Path.CURVE3]
 
 
-def draw_logo(pad: float = 0.05, line_width: float = 16.):
+def draw_logo(pad: float = 0.05, line_width: float = 16., line_color: str = 'black'):
     """Draw the glorious package logo.
     """
     path = mpath.Path(VERTS, CODES)
-    plt.figure('ipose logo', figsize=(5, 5))
+    plt.figure(f'ipose logo_{line_color}', figsize=(5, 5))
     plt.gca().set_aspect('equal')
     plt.gca().set_xlim(-pad, 1. + pad)
     plt.gca().set_ylim(-pad, 1. + pad)
     plt.gca().axis('off')
     plt.tight_layout(pad=1.025)
-    patch = patches.PathPatch(path, facecolor='orange', lw=line_width)
+    patch = patches.PathPatch(path, facecolor='orange', lw=line_width, edgecolor=line_color)
     plt.gca().add_patch(patch)
-    plt.plot((0.01, 0.4, 0.75, 0.99), (0.2, 0.8, 0.4, 0.6), lw=line_width, color='black')
-    circle = patches.Circle((0.76, 0.76), 0.175, color='black')
+    plt.plot((0.01, 0.4, 0.75, 0.99), (0.2, 0.8, 0.4, 0.6), lw=line_width, color=line_color)
+    circle = patches.Circle((0.76, 0.76), 0.175, color=line_color)
     plt.gca().add_patch(circle)
-    plt.text(0.5, 0.1, 'iPose', size=90, ha='center')
-    plt.savefig(IPOSE_DATA / 'ipose_logo.png', transparent=True)
+    plt.text(0.5, 0.1, 'iPose', size=90, ha='center', color=line_color)
 
 
 
 if __name__ == '__main__':
-    draw_logo()
+    for color in ('black', 'white'):
+        draw_logo(line_color=color)
+        plt.savefig(IPOSE_DATA / f'ipose_logo_{color}.png', transparent=True)
     plt.show()

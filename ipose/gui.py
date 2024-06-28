@@ -38,11 +38,14 @@ class Canvas(QtWidgets.QLabel):
         if size is not None:
             self.setFixedSize(*size)
 
-    def paint(self, source: str | pathlib.Path | QtGui.QPixmap) -> None:
+    def paint(self, source: str | pathlib.Path | QtGui.QPixmap, resize: bool = False) -> None:
         """
         """
         if not isinstance(source, QtGui.QPixmap):
             source = QtGui.QPixmap(f'{source}')
+        if resize:
+            source = source.scaledToHeight(self.height(),
+                QtCore.Qt.TransformationMode.SmoothTransformation)
         self.setPixmap(source)
 
 
@@ -125,7 +128,7 @@ class Header(LayoutFrame):
     def set_logo(self, file_path: str | pathlib.Path) -> None:
         """
         """
-        self.logo_canvas.paint(file_path)
+        self.logo_canvas.paint(file_path, resize=True)
 
 
 
@@ -156,7 +159,7 @@ class PosterBanner(LayoutFrame):
         super().__init__(parent)
         self.portrait_canvas = self.add_canvas(0, 0, size=size)
         self.qrcode_canvas = self.add_canvas(0, 1, size=size)
-        self.roster_table = self.add_widget(RosterTable(self), 0, 2)
+        self.roster_table = self.add_widget(RosterTable(self), 0, 2, 2)
         self.name_label = self.add_text_label(1, 0, 1, 2, object_name='name')
         self.affiliation_label = self.add_text_label(2, 0, 1, 2, object_name='affiliation')
         self.status_label = self.add_text_label(2, 2, object_name='message')
@@ -262,7 +265,8 @@ if __name__ == '__main__':
     #ipose.config.set('gui.debug', True)
     window = DisplayWindow()
     window.header.set_title('First Topical Conference on Something Very Interesting')
-    window.header.set_subtitle('Far, Far Away Land, Once Upon a time')
+    window.header.set_subtitle('Once Upon a time, in a far, far away land...')
+    window.header.set_logo(IPOSE_TEST_DATA / 'ipose_logo_white.png')
     window.footer.set_message('And this is a debug message...')
     window.banner.set_portrait(IPOSE_TEST_DATA / 'mona_lisa_crop.png')
     window.banner.set_qrcode(IPOSE_TEST_DATA / 'ipose_qrcode.png')
