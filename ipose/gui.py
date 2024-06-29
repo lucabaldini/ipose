@@ -31,11 +31,28 @@ _DEFAULT_STYLESHEET = IPOSE_QSS / 'default.qss'
 class ResizePolicy(Enum):
 
     """Enum class for the ``QPixmap`` resize policy.
+
+    In most of the cases we want to resize rastered images to their final dimensions
+    beforehand and display them onto  a ``QLabel`` without any additional manipulation,
+    in order to (i) optimize the whole process for speed and resources; and (ii)
+    take advantage of the higher quality of the resizing algorithms that are available
+    offline. This ``Enum`` class provide the necessary granularity to ensure that
+    images are displayed at the best possible resolution.
     """
 
+    #: Do not attempt to resize the image, and place the row bitmap onto the display.
     DO_NOT_RESIZE = auto()
+    #: Make sure the image width matches that of the canvas and do nothing.
+    MATCH_WIDTH = auto()
+    #: Make sure the image height matches that of the canvas and do nothing.
+    MATCH_HEIGHT = auto()
+    #: Make sure the image size matches that of the canvas and do nothing.
+    MATCH_SIZE = auto()
+    #: Scale the image to the width of the target image, preserving the aspect ratio.
     SCALE_TO_WIDTH = auto()
+    #: Scale the image to the height of the target image, preserving the aspect ratio.
     SCALE_TO_HEIGHT = auto()
+    #: Scale the image to the size of the target image, when the aspect ratio allows.
     SCALE_TO_SIZE = auto()
 
 
@@ -60,6 +77,7 @@ class Canvas(QtWidgets.QLabel):
         of the object).
     """
 
+    #: Default tranformation for scaling rastered images (highest quality).
     _DEFAULT_TRANSFORM = QtCore.Qt.TransformationMode.SmoothTransformation
 
     def __init__(self, parent: QtWidgets.QWidget = None, width: int = None,
@@ -87,6 +105,11 @@ class Canvas(QtWidgets.QLabel):
 
         transform
             The scaling algorithm.
+
+        Returns
+        -------
+        QtGui.QPixmap
+            The resized ``QPixmap`` object.
         """
         if pixmap.width() == width:
             return pixmap
@@ -108,6 +131,11 @@ class Canvas(QtWidgets.QLabel):
 
         transform
             The scaling algorithm.
+
+        Returns
+        -------
+        QtGui.QPixmap
+            The resized ``QPixmap`` object.
         """
         if pixmap.height() == height:
             return pixmap
@@ -118,22 +146,74 @@ class Canvas(QtWidgets.QLabel):
     def scale_to_size(pixmap: QtGui.QPixmap, width: int, height: int,
         transform: QtCore.Qt.TransformationMode = _DEFAULT_TRANSFORM) -> QtGui.QPixmap:
         """Scale a given ``QtGui.QPixmap`` object to a target size.
+
+        This raises a ``RuntimeError`` when the aspect ration of the image does
+        not match that of the target canvas.
+
+        Parameters
+        ----------
+        pixmap
+            The original ``QtGui.QPixmap`` object.
+
+        width
+            The target width in pixels.
+
+        height
+            The target height in pixels.
+
+        transform
+            The scaling algorithm.
+
+        Returns
+        -------
+        QtGui.QPixmap
+            The resized ``QPixmap`` object.
         """
         source_aspect_ratio = pixmap.width() / pixmap.height()
         target_aspect_ratio = width / height
+        # If there is a mismatch in the aspect ratio we give up...
         if not math.isclose(source_aspect_ratio, target_aspect_ratio):
             raise RuntimeError(f'Mismatch in aspect ratio ({source_aspect_ratio} vs '
-                f'{target_aspect_ratio}) while painting canvas')
+                f'{target_aspect_ratio}) while painting a canvas')
+        # ... and otherwise we can equivalently rescale to either the width or the
+        # height of the canvas.
         return Canvas.scale_to_width(pixmap, width, transform)
 
     def paint(self, source: str | pathlib.Path | QtGui.QPixmap,
         resize_policy: ResizePolicy = ResizePolicy.DO_NOT_RESIZE,
         transform: QtCore.Qt.TransformationMode = _DEFAULT_TRANSFORM) -> None:
         """Paint a given image on the canvas.
+
+        Parameters
+        ----------
+        source
+            The source of the rastered image to be painted, that can be either the
+            path to an image file or a ``QPixmap`` object, in case we want to read
+            the file once and cache the image for multiple uses.
+
+        resize_policy
+            The resize policy, see :class:`ResizePolicy`.
+
+        transform
+            The resize algorithm to be used, when relevant.
         """
         if not isinstance(source, QtGui.QPixmap):
             source = QtGui.QPixmap(f'{source}')
-        if resize_policy == ResizePolicy.SCALE_TO_WIDTH:
+        if resize_policy == ResizePolicy.MATCH_WIDTH:
+            if source.width() != self.width():
+                raise RuntimeError(f'QPixmap width does match canvas '
+                    f'({source.width()} vs {self.width()})')
+        elif resize_policy == ResizePolicy.MATCH_HEIGHT:
+            if source.height() != self.height():
+                raise RuntimeError(f'QPixmap height does match canvas '
+                    f'({source.height()} vs {self.height()})')
+        elif resize_policy == ResizePolicy.MATCH_SIZE:
+            source_size = source.width(), source.height()
+            canvas_size = self.width(), self.height()
+            if source_size != canvas_size:
+                raise RuntimeError(f'QPixmap size does match canvas '
+                    f'({source_size} vs {canvas_size})')
+        elif resize_policy == ResizePolicy.SCALE_TO_WIDTH:
             source = self.scale_to_width(source, self.width(), transform)
         elif resize_policy == ResizePolicy.SCALE_TO_HEIGHT:
             source = self.scale_to_height(source, self.height(), transform)
@@ -260,12 +340,12 @@ class PosterBanner(LayoutFrame):
     def set_portrait(self, source: str | pathlib.Path | QtGui.QPixmap) -> None:
         """
         """
-        self.portrait_canvas.paint(source, ResizePolicy.SCALE_TO_SIZE)
+        self.portrait_canvas.paint(source, ResizePolicy.MATCH_SIZE)
 
     def set_qrcode(self, source: str | pathlib.Path | QtGui.QPixmap) -> None:
         """
         """
-        self.qrcode_canvas.paint(source, ResizePolicy.SCALE_TO_SIZE)
+        self.qrcode_canvas.paint(source, ResizePolicy.MATCH_SIZE)
 
     def set_presenter(self, name: str, affiliation: str) -> None:
         """
@@ -290,7 +370,7 @@ class PosterCanvas(LayoutFrame):
         """
         width = ipose.config.get('gui.poster.width')
         super().__init__(parent)
-        self.poster_canvas = self.add_canvas(0, 0)
+        self.poster_canvas = self.add_canvas(0, 0, width=width)
         self.layout().setColumnMinimumWidth(0, width)
 
 
@@ -364,7 +444,7 @@ if __name__ == '__main__':
     window.banner.set_portrait(IPOSE_TEST_DATA / 'mona_lisa_crop.png')
     window.banner.set_qrcode(IPOSE_TEST_DATA / 'ipose_qrcode.png')
     window.banner.set_presenter('Monna Lisa', 'Gherardini Family (Florence)')
-    window.canvas.poster_canvas.paint(IPOSE_TEST_DATA / 'leonardo.png', ResizePolicy.DO_NOT_RESIZE)
+    window.canvas.poster_canvas.paint(IPOSE_TEST_DATA / 'leonardo.png', ResizePolicy.MATCH_WIDTH)
     window.banner.set_status('Status messages will be displayed in this box...')
     window.show()
     exec_qapp(app)
